@@ -1,0 +1,53 @@
+<!-- Botão de Filtros -->
+<button class="btn btn-primary" (click)="toggleSidebar()">
+  <i class="bi bi-funnel-fill"></i> Filtros
+</button>
+
+<!-- Sidebar de Filtros -->
+<aside class="sidebar-filtro" [class.aberto]="sidebarAberto">
+  <button class="btn-close" (click)="toggleSidebar()">&times;</button>
+  <h4>Filtrar Gráfico</h4>
+
+  <div class="form-group">
+    <label for="tipo">Tipo</label>
+    <select class="form-control" id="tipo" [(ngModel)]="filtros.tipo" (change)="onFiltroChange()">
+      <!--option value="temperature">Temperatura</option-->
+      <option value="humidity">Umidade</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Período</label>
+    <input type="datetime-local" class="form-control mb-2" [(ngModel)]="filtros.inicio" (change)="onFiltroChange()" />
+    <input type="datetime-local" class="form-control" [(ngModel)]="filtros.fim" (change)="onFiltroChange()" />
+  </div>
+
+  <div class="form-group">
+    <label>Valor Mínimo</label>
+    <input type="number" class="form-control" [(ngModel)]="filtros.min" (change)="onFiltroChange()" />
+  </div>
+
+  <div class="form-group">
+    <label>Valor Máximo</label>
+    <input type="number" class="form-control" [(ngModel)]="filtros.max" (change)="onFiltroChange()" />
+  </div>
+</aside>
+
+<!-- Dropdown de Tipo também pode ser mantido -->
+<div class="d-inline-block" ngbDropdown #myDrop="ngbDropdown">
+  <button type="button" class="btn btn-outline-primary mx-2" id="dropdownManual" ngbDropdownAnchor
+    (focus)="myDrop.open()">
+    Gráficos
+  </button>
+  <div ngbDropdownMenu aria-labelledby="dropdownManual">
+    <!--button (click)="setTipo('temperature')" ngbDropdownItem>
+      Temperatura
+    </button-->
+    <button (click)="setTipo('humidity')" ngbDropdownItem>Umidade</button>
+  </div>
+</div>
+
+<!-- Área do Gráfico -->
+<div class="chart-container p-5">
+  <canvas id="MyChart">{{ chart }}</canvas>
+</div>

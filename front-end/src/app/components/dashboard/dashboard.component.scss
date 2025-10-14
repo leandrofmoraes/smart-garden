@@ -1,0 +1,85 @@
+.dashboard-container {
+  padding: 2rem;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.section {
+  margin-bottom: 2rem;
+
+  .section-title {
+    font-size: 1.8rem;
+    color: #222;
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+  }
+}
+
+.cards-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: flex-start;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+  }
+}
+
+.card.leitura {
+  flex: 1 1 200px;
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  min-width: 180px;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+  }
+
+  .icon {
+    font-size: 2.4rem;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #111;
+  }
+
+  p {
+    margin: 0;
+    font-size: 1rem;
+    color: #666;
+  }
+
+  // TEMPERATURA
+  //&.temperatura {
+  //  background: linear-gradient(135deg, #ffe5e5, #ffcccc);
+  //  border-left: 6px solid #ff4d4d;
+
+  //  .icon {
+  //    color: #ff4d4d;
+  //  }
+  //}
+
+  // UMIDADE
+  &.umidade {
+    background: linear-gradient(135deg, #e0f0ff, #cde4ff);
+    border-left: 6px solid #339af0;
+
+    .icon {
+      color: #339af0;
+    }
+  }
+}
