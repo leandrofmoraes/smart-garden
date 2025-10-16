@@ -77,7 +77,7 @@ void enviarJSON(bool estaRegando,
 
   unsigned long ts = millis();
 
-  char jsonBuf[260];
+  char jsonBuf[300];
   // Prefixo #DATA# facilita filtro no receptor
   // Ex: #DATA#{"umidade":45,"regando":1,"rega_duracao_s":3,"rega_pulsos":123,"rega_volume_l":0.123,"volume_total_l":1.234,"ts":123456}
   snprintf(jsonBuf, sizeof(jsonBuf),
@@ -156,7 +156,7 @@ void loop() {
   unsigned long now = millis();
 
   // Faz leituras periodicamente (cada intervaloLeituraMs)
-  if (now - ultimaLeituraMs >= intervaloLeituraMs) {
+  if ((long)(now - ultimaLeituraMs) >= intervaloLeituraMs) {
     ultimaLeituraMs = now;
     umidadeSoloPct = lerUmidadeMedia(NUM_AMOSTRAS);
     atualizarDisplay(umidadeSoloPct, regando);
