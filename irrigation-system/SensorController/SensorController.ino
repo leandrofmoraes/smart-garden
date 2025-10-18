@@ -64,7 +64,7 @@ void contadorDePulsos() {
 
 // Enviar JSON via Serial
 void enviarJSON(bool estaRegando,
-                int umidadePct,
+                int humidityPct,
                 unsigned long pulsesSessao,
                 float volumeSessao,
                 float volumeAcumulado,
@@ -75,21 +75,20 @@ void enviarJSON(bool estaRegando,
   dtostrf(volumeSessao, 6, 3, volSessBuf);  // largura 6, 3 decimais
   dtostrf(volumeAcumulado, 6, 3, volTotBuf);
 
-  unsigned long ts = millis();
+  unsigned long device_ts = millis();
 
   char jsonBuf[300];
   // Prefixo #DATA# facilita filtro no receptor
   // Ex: #DATA#{"umidade":45,"regando":1,"rega_duracao_s":3,"rega_pulsos":123,"rega_volume_l":0.123,"volume_total_l":1.234,"ts":123456}
   snprintf(jsonBuf, sizeof(jsonBuf),
-           "#DATA#{\"umidade\":%d,\"regando\":%d,\"rega_duracao_s\":%lu,\"rega_pulsos\":%lu,"
-           "\"rega_volume_l\":%s,\"volume_total_l\":%s,\"ts\":%lu}",
-           umidadePct,
+           "#DATA#{\"humidity\":%d,\"device_ts_ms\":%lu,\"regando\":%d,"
+           "\"rega_pulsos\":%lu,\"rega_volume_l\":%s,\"volume_total_l\":%s}",
+           humidityPct,
+           device_ts,
            estaRegando ? 1 : 0,
-           duracaoSessao_s,
            pulsesSessao,
            volSessBuf,
-           volTotBuf,
-           ts);
+           volTotBuf);
 
   Serial.println(jsonBuf);
 }
@@ -156,7 +155,7 @@ void loop() {
   unsigned long now = millis();
 
   // Faz leituras periodicamente (cada intervaloLeituraMs)
-  if ((long)(now - ultimaLeituraMs) >= intervaloLeituraMs) {
+  if (now - ultimaLeituraMs >= intervaloLeituraMs) {
     ultimaLeituraMs = now;
     umidadeSoloPct = lerUmidadeMedia(NUM_AMOSTRAS);
     atualizarDisplay(umidadeSoloPct, regando);
@@ -251,8 +250,8 @@ void pararRega() {
 // Atualiza o display com estado e umidade
 void atualizarDisplay(int umidadePct, bool estaRegando) {
   lcd.setCursor(0, 0);
-  char linha0[17];
-  char linha1[17];
+  char linha0[18];
+  char linha1[18];
 
   if (estaRegando) {
     // Exibir estado e volume da sessão (atualiza volume parcial lendo pulseCount)
@@ -278,7 +277,7 @@ void atualizarDisplay(int umidadePct, bool estaRegando) {
     char volTotalBuf[8];
     dtostrf(volumeTotal, 4, 2, volTotalBuf);
     snprintf(linha0, sizeof(linha0), "Estado: IDLE V:%sL", volTotalBuf);
-    snprintf(linha1, sizeof(linha1), "Umid:%3d%%            ", umidadePct);
+    snprintf(linha1, sizeof(linha1), "Umid:%3d%%", umidadePct);
   }
 
   //garante 16 colunas
