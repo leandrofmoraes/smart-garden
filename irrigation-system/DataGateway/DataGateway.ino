@@ -1,9 +1,9 @@
 /*
    Criado por: Leandro F. Moraes
-   Rev.: 01
+   Rev.: 02
    Data: 16.10.2025
    Observações:
-  - ESP8266: Recebe JSON da Serial (Arduino) e envia via HTTP POST
+  - ESP8266: Recebe JSON vinda do Arduino via Srial e envia via HTTP POST
   - Conecte: Arduino TX -> ESP8266 RX (GPIO3)
 */
 
@@ -53,12 +53,12 @@ bool isQueueFull() {
 bool enqueuePayload(const char* payload) {
   size_t len = strlen(payload);
   if (len == 0 || len > MAX_PAYLOAD) {
-    Serial.println("[QUEUE] Payload inválido/tamanho excede limite");
+    Serial.println(F("[QUEUE] Payload inválido/tamanho excede limite"));
     return false;
   }
 
   if (isQueueFull()) {
-    Serial.println("[QUEUE] Fila cheia, descartando item mais antigo");
+    Serial.println(F("[QUEUE] Fila cheia, descartando item mais antigo"));
     qHead = (qHead + 1) % MAX_QUEUE;
     qCount--;
   }
@@ -68,7 +68,7 @@ bool enqueuePayload(const char* payload) {
   qTail = (qTail + 1) % MAX_QUEUE;
   qCount++;
 
-  Serial.print("[QUEUE] Enfileirado. tamanho fila = ");
+  Serial.print(F("[QUEUE] Enfileirado. tamanho fila = "));
   Serial.println(qCount);
   return true;
 }
@@ -99,12 +99,12 @@ bool getIsoTimestamp(char* buf, size_t buflen) {
 bool httpPostJson(const String& jsonPayload) {
   if (WiFi.status() != WL_CONNECTED) {
     wifiConnected = false;
-    Serial.println("[HTTP] WiFi desconectado");
+    Serial.println(F("[HTTP] WiFi desconectado"));
     return false;
   }
 
   if (enviandoHTTP) {
-    Serial.println("[HTTP] Tentativa rejeitada");
+    Serial.println(F("[HTTP] Tentativa rejeitada"));
     return false;
   }
 
@@ -116,7 +116,7 @@ bool httpPostJson(const String& jsonPayload) {
   http.setTimeout(HTTP_TIMEOUT_MS);
 
   if (!http.begin(client, serverUrl)) {
-    Serial.println("[HTTP] begin() falhou");
+    Serial.println(F("[HTTP] begin() falhou"));
     enviandoHTTP = false;
     return false;
   }
@@ -124,25 +124,25 @@ bool httpPostJson(const String& jsonPayload) {
   http.addHeader("Content-Type", "application/json");
   http.addHeader("User-Agent", "ESP8266-Automacao-Rega");
 
-  Serial.print("[HTTP] POST -> ");
+  Serial.print(F("[HTTP] POST -> "));
   Serial.println(jsonPayload);
 
   int httpCode = http.POST((uint8_t*)jsonPayload.c_str(), jsonPayload.length());
 
   if (httpCode > 0) {
-    Serial.print("[HTTP] Código - ");
+    Serial.print(F("[HTTP] Código - "));
     Serial.println(httpCode);
     if (httpCode >= 200 && httpCode < 300) {
       String resp = http.getString();
-      Serial.print("[HTTP] Resposta: ");
+      Serial.print(F("[HTTP] Resposta: "));
       Serial.println(resp);
       success = true;
     } else {
-      Serial.print("[HTTP] Código fora de 2xx: ");
+      Serial.print(F("[HTTP] Código fora de 2xx: "));
       Serial.println(httpCode);
     }
   } else {
-    Serial.print("[HTTP] Falha: ");
+    Serial.print(F("[HTTP] Falha: "));
     Serial.println(http.errorToString(httpCode).c_str());
   }
 
@@ -157,7 +157,7 @@ void trySendOrQueue(const String& payload) {
   bool ok = httpPostJson(payload);
   if (!ok) {
     if (!enqueuePayload(payload.c_str())) {
-      Serial.println("[QUEUE] Falha ao enfileirar payload");
+      Serial.println(F("[QUEUE] Falha ao enfileirar payload"));
     }
   }
 }
@@ -165,7 +165,7 @@ void trySendOrQueue(const String& payload) {
 void flushQueue() {
   if (isQueueEmpty()) return;
 
-  Serial.print("[QUEUE] Tentando enviar fila (itens = ");
+  Serial.print(F("[QUEUE] Tentando enviar fila (itens = "));
   Serial.print(qCount);
   Serial.println(" )...");
 
@@ -182,17 +182,17 @@ void flushQueue() {
     bool ok = httpPostJson(payload);
 
     if (ok) {
-      Serial.println("[QUEUE] Item enviado, removendo da fila");
+      Serial.println(F("[QUEUE] Item enviado, removendo da fila"));
       dequeuePayload();
       attempts = 0;  // Reset attempts on success
     } else {
-      Serial.println("[QUEUE] Falha ao enviar item, tentando novamente...");
+      Serial.println(F("[QUEUE] Falha ao enviar item, tentando novamente..."));
       attempts++;
       delay(1000);  // Aguarda 1s antes de retry
     }
   }
 
-  Serial.print("[QUEUE] Fila após flush = ");
+  Serial.print(F("[QUEUE] Fila após flush = "));
   Serial.println(qCount);
 }
 
@@ -200,11 +200,10 @@ void processarLinha(String linha) {
   linha.trim();
   if (linha.length() == 0) return;
 
-  if (linha.startsWith(prefixo)) {
-
+  if (!linha.startsWith(prefixo)) {
     // linha sem prefixo = debug do Arduino
     if (linha.length() < 200) {
-      Serial.print("[ARDUINO] ");
+      Serial.print(F("[ARDUINO] "));
       Serial.println(linha);
     }
     return;
@@ -213,21 +212,21 @@ void processarLinha(String linha) {
   String jsonStr = linha.substring(prefixo.length());
   jsonStr.trim();
 
-  Serial.print("[RX] Bruto: ");
+  Serial.print(F("[RX] Bruto: "));
   Serial.println(jsonStr);
 
-  // Valida JSON com documento menor
+  // Validar JSON
   StaticJsonDocument<384> inDoc;
   DeserializationError err = deserializeJson(inDoc, jsonStr);
   if (err) {
-    Serial.print("[ERRO] JSON inválido: ");
+    Serial.print(F("[ERRO] JSON inválido: "));
     Serial.println(err.c_str());
     return;
   }
 
   // extrai humidity (prioriza "humidity", fallback "umidade")
   if (!inDoc.containsKey("humidity") && !inDoc.containsKey("umidade")) {
-    Serial.println("[ERRO] Campo 'humidity' ausente no JSON recebido");
+    Serial.println(F("[ERRO] Campo 'humidity' ausente no JSON recebido"));
     return;
   }
 
@@ -241,7 +240,6 @@ void processarLinha(String linha) {
     else humidityVal = (float)inDoc["umidade"].as<long>();
   }
 
-  // extrai campos opcionais (se existirem)
   bool hasRegando = false;
   bool regandoVal = false;
   if (inDoc.containsKey("regando")) {
@@ -285,17 +283,24 @@ void processarLinha(String linha) {
     device_ts_ms = inDoc["device_ts_ms"].as<unsigned long>();
   }
 
+  // monta JSON final contendo só os campos "esperados" + opcionais
+  StaticJsonDocument<384> outDoc;
   // obtem timestamp ISO (NTP) se possível
   char isoBuf[32];
   bool haveIso = getIsoTimestamp(isoBuf, sizeof(isoBuf));
-  if (!haveIso) {
-    // fallback: enviar epoch-ms como string (o backend aceita)
-    unsigned long ms = millis();
-    snprintf(isoBuf, sizeof(isoBuf), "%lu", ms);
+  if (haveIso) {
+    // epoch em ms a partir do time() (NTP)
+    unsigned long epochMs = (unsigned long)time(nullptr) * 1000UL;
+    outDoc["timestamp"] = epochMs;             // number: epoch ms
+    outDoc["timestamp_iso"] = String(isoBuf);  // string ISO (opcional)
+  } else {
+    // fallback: sem consenso real de hora -> enviar device_ms (millis desde boot)
+    unsigned long devMs = millis();
+    outDoc["timestamp"] = devMs;     // number: dispositivo pode usar isso (marcador relativo)
+    outDoc["device_ts_ms"] = devMs;  // explícito que é tempo do device
+    // não incluir timestamp_iso porque não há NTP
   }
 
-  // monta JSON final contendo só os campos "esperados" + opcionais
-  StaticJsonDocument<256> outDoc;
   outDoc["humidity"] = humidityVal;
   outDoc["timestamp"] = String(isoBuf);  // ISO string ou epoch-ms string fallback
 
@@ -327,10 +332,10 @@ void verificarConexaoWiFi() {
     bool currentlyConnected = (WiFi.status() == WL_CONNECTED);
 
     if (wifiConnected && !currentlyConnected) {
-      Serial.println("[WIFI] Conexão perdida!");
+      Serial.println(F("[WIFI] Conexão perdida!"));
       wifiConnected = false;
     } else if (!wifiConnected && currentlyConnected) {
-      Serial.println("[WIFI] Reconectado!");
+      Serial.println(F("[WIFI] Reconectado!"));
       wifiConnected = true;
       flushQueue();
     }
@@ -346,8 +351,8 @@ void setup() {
   Serial.setTimeout(10);
 
   Serial.println();
-  Serial.println("=== ESP8266 Bridge iniciando ===");
-  Serial.print("Conectando WiFi: ");
+  Serial.println(F("=== ESP8266 Bridge iniciando ==="));
+  Serial.print(F("Conectando WiFi: "));
   Serial.println(ssid);
 
   WiFi.mode(WIFI_STA);
@@ -362,16 +367,16 @@ void setup() {
   wifiConnected = (WiFi.status() == WL_CONNECTED);
   if (wifiConnected) {
     Serial.println();
-    Serial.print("WiFi OK! IP: ");
+    Serial.print(F("WiFi OK! IP: "));
     Serial.println(WiFi.localIP());
   } else {
     Serial.println();
-    Serial.println("Falha WiFi - modo offline ativado");
+    Serial.println(F("Falha WiFi - modo offline ativado"));
   }
 
   // inicializa NTP para obter hora em UTC
   configTime(0, 0, "pool.ntp.org", "time.google.com");
-  Serial.println("Inicializando NTP...");
+  Serial.println(F("Inicializando NTP..."));
   unsigned long t0 = millis();
   bool haveTime = false;
   while (millis() - t0 < 10000UL) {  // aguarda até 10s
@@ -381,11 +386,11 @@ void setup() {
     }
     delay(200);
   }
-  if (haveTime) Serial.println("NTP sincronizado");
-  else Serial.println("NTP: sem sincronizacao (fallback para millis)");
+  if (haveTime) Serial.println(F("NTP sincronizado"));
+  else Serial.println(F("NTP: sem sincronizacao (fallback para millis)"));
 
   linhaBuffer.reserve(MAX_LINE_LENGTH);
-  Serial.println("Aguardando dados do Arduino...");
+  Serial.println(F("Aguardando dados do Arduino..."));
 }
 
 void loop() {
@@ -402,7 +407,7 @@ void loop() {
     } else {
       linhaBuffer += c;
       if (linhaBuffer.length() >= MAX_LINE_LENGTH) {
-        Serial.println("[ERRO] Linha muito longa, descartando");
+        Serial.println(F("[ERRO] Linha muito longa, descartando"));
         linhaBuffer = "";
       }
     }

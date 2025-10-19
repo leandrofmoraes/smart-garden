@@ -1,18 +1,16 @@
-import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
 export type ReadingDocument = Reading & Document;
 
-@Schema({ timestamps: false })
+@Schema({ timestamps: true })
 export class Reading {
   @Prop({ required: true })
   humidity: number;
 
-  // timestamp armazenado como Date
   @Prop({ required: true, type: Date, index: true })
   timestamp: Date;
 
-  // campos adicionais da rega (opcionais)
   @Prop({ type: Boolean, default: false })
   regando?: boolean;
 
@@ -27,6 +25,26 @@ export class Reading {
 
   @Prop({ type: Number, default: 0 })
   rega_duracao_s?: number;
+
+  @Prop({ type: Number })
+  device_ts_ms?: number;
+
+  @Prop({ type: String })
+  esp_ip?: string;
+
+  @Prop({ type: Number })
+  esp_rssi?: number;
+
+  // Campo adicional para timestamp ISO (se necessário)
+  @Prop({ type: String })
+  timestamp_iso?: string;
+
+  // Campos automáticos do Mongoose
+  @Prop()
+  createdAt?: Date;
+
+  @Prop()
+  updatedAt?: Date;
 }
 
 export const ReadingSchema = SchemaFactory.createForClass(Reading);
