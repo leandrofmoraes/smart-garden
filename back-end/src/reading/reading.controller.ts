@@ -24,27 +24,13 @@ export class ReadingController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  findOne(@Param('id') id: number) {
+  findOne(@Param('id') id: string) {
     return this.readingService.findOne(id);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  delete(@Param('id') id: number) {
+  delete(@Param('id') id: string) {
     return this.readingService.delete(id);
-  }
-
-  @Get('test')
-  @HttpCode(HttpStatus.OK)
-  testEndpoint() {
-    return {
-      message: 'API is working',
-      timestamp: new Date(),
-      expectedFields: [
-        'humidity', 'timestamp', 'regando', 'rega_pulsos',
-        'rega_volume_l', 'volume_total_l', 'rega_duracao_s',
-        'device_ts_ms', 'esp_ip', 'esp_rssi'
-      ]
-    };
   }
 }

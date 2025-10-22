@@ -1,3 +1,5 @@
+/* src/app/components/dashboard/dashboard.component.scss */
+
 .dashboard-container {
   padding: 2rem;
   background-color: #f5f7fa;
@@ -7,13 +9,13 @@
 
 .section {
   margin-bottom: 2rem;
+}
 
-  .section-title {
-    font-size: 1.8rem;
-    color: #222;
-    margin-bottom: 1.5rem;
-    font-weight: 700;
-  }
+.section .section-title {
+  font-size: 1.8rem;
+  color: #222;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
 }
 
 .cards-row {
@@ -21,8 +23,10 @@
   flex-wrap: wrap;
   gap: 1.5rem;
   justify-content: flex-start;
+}
 
-  @media (max-width: 768px) {
+@media (max-width: 768px) {
+  .cards-row {
     justify-content: center;
   }
 }
@@ -38,48 +42,38 @@
   min-width: 180px;
   position: relative;
   overflow: hidden;
+}
 
-  &:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
-  }
+.card.leitura:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+}
 
-  .icon {
-    font-size: 2.4rem;
-    margin-bottom: 0.75rem;
-    display: block;
-  }
+.card.leitura .icon {
+  font-size: 2.4rem;
+  margin-bottom: 0.75rem;
+  display: block;
+}
 
-  h3 {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: #111;
-  }
+.card.leitura h3 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #111;
+}
 
-  p {
-    margin: 0;
-    font-size: 1rem;
-    color: #666;
-  }
+.card.leitura p {
+  margin: 0;
+  font-size: 1rem;
+  color: #666;
+}
 
-  // TEMPERATURA
-  //&.temperatura {
-  //  background: linear-gradient(135deg, #ffe5e5, #ffcccc);
-  //  border-left: 6px solid #ff4d4d;
+/* Umidade card */
+.card.leitura.umidade {
+  background: linear-gradient(135deg, #e0f0ff, #cde4ff);
+  border-left: 6px solid #339af0;
+}
 
-  //  .icon {
-  //    color: #ff4d4d;
-  //  }
-  //}
-
-  // UMIDADE
-  &.umidade {
-    background: linear-gradient(135deg, #e0f0ff, #cde4ff);
-    border-left: 6px solid #339af0;
-
-    .icon {
-      color: #339af0;
-    }
-  }
+.card.leitura.umidade .icon {
+  color: #339af0;
 }

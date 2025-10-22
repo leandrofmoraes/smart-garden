@@ -10,283 +10,183 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
-#define VALVULA 10
-#define UMI_SENSOR A0
-#define FLOW_SENSOR 2
+#define VALVE_PIN 10
+#define SOIL_SENSOR_PIN A0
+#define FLOW_SENSOR_PIN 2
 
-// DEBUG: comente a linha abaixo para DESLIGAR prints de debug
-// #define DEBUG
-#ifdef DEBUG
-#define DPRINT(...) Serial.print(__VA_ARGS__)
-#define DPRINTLN(...) Serial.println(__VA_ARGS__)
-#else
-#define DPRINT(...) (void)0
-#define DPRINTLN(...) (void)0
-#endif
+const int DRY_THRESHOLD = 20;                 // %
+const unsigned long WATERING_TIME_MS = 5000;  // 5s
+const uint8_t SAMPLE_COUNT = 5;
+
+const int SENSOR_MIN = 10;
+const int SENSOR_MAX = 1000;
+
+const bool RELAY_ACTIVE_LOW = true;
+const float FLOW_FACTOR = 450.0;  // pulsos por litro
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// ----------------- CONFIG -----------------
-const int limiarSeco = 20;                       // %: regar quando a umidade estiver abaixo deste valor.
-const unsigned long tempoRegaMs = 5UL * 1000UL;  // tempo de rega em ms (5s)
-const int NUM_AMOSTRAS = 5;                      // média de N leituras para reduzir ruído
+volatile unsigned long pulseCount = 0;
 
-const int UMI_SENSOR_MIN = 10;    // solo encharcado (calibrar)
-const int UMI_SENSOR_MAX = 1000;  // solo seco (calibrar)
+bool watering = false;
+unsigned long wateringStart = 0;
+unsigned long lastReading = 0;
+unsigned long lastReport = 0;
 
-// módulo relé é ativo em LOW (true) ou HIGH (false)
-const bool RELAY_ACTIVE_LOW = false;
-// -----------------------------------------
+unsigned long sessionPulses = 0;
+float totalVolume = 0.0;
+float lastVolume = 0.0;
+unsigned long lastDuration = 0;
+int currentHumidity = 100;
 
-// Variáveis de controle
-int umidadeSoloPct = 100;
-bool regando = false;
-unsigned long inicioRegaMs = 0;
-unsigned long ultimaLeituraMs = 0;
-const unsigned long intervaloLeituraMs = 1000UL;  // intervalo entre atualizações da tela / leituras
+const unsigned long READING_INTERVAL = 1000;
+const unsigned long REPORT_INTERVAL = 3600000;  // 1 hora
 
-// Intervalo de envio de relatório via Serial (1 hora)
-const unsigned long intervaloRelatorioMs = 3600000UL;  // 1 hora = 3.600.000 ms
-unsigned long ultimaEnvioRelatorioMs = 0;
-
-// Variáveis do sensor de fluxo
-volatile unsigned long pulseCount = 0;  // Contador de pulsos
-unsigned long pulsesDuringRega = 0;     // pulsos medidos na sessão
-float volumeTotal = 0.0;                // volume acumulado (L)
-float lastSessionVolume = 0.0;          // volume da última rega em
-unsigned long lastSessionDuration_s = 0;
-const float factorK = 450.0;  // Fator de calibração (pulsos/L)
-
-// ISR - incrementa contador de pulsos
-void contadorDePulsos() {
+void pulseCounter() {
   pulseCount++;
 }
 
-// Enviar JSON via Serial
-void enviarJSON(bool estaRegando,
-                int humidityPct,
-                unsigned long pulsesSessao,
-                float volumeSessao,
-                float volumeAcumulado,
-                unsigned long duracaoSessao_s) {
-  // Converte floats para string (AVR-safe)
+void enviarJSON(bool isWatering, int humidityPct, unsigned long pulsesSessao, float volumeSessao, float volumeTotal, unsigned long duracaoSessao_s) {
   char volSessBuf[12];
   char volTotBuf[12];
-  dtostrf(volumeSessao, 6, 3, volSessBuf);  // largura 6, 3 decimais
-  dtostrf(volumeAcumulado, 6, 3, volTotBuf);
+  dtostrf(volumeSessao, 6, 3, volSessBuf);
+  dtostrf(volumeTotal, 6, 3, volTotBuf);
 
   unsigned long device_ts = millis();
 
   char jsonBuf[300];
-  // Prefixo #DATA# facilita filtro no receptor
-  // Ex: #DATA#{"umidade":45,"regando":1,"rega_duracao_s":3,"rega_pulsos":123,"rega_volume_l":0.123,"volume_total_l":1.234,"ts":123456}
+  // regando enviado como true/false (booleano JSON)
   snprintf(jsonBuf, sizeof(jsonBuf),
-           "#DATA#{\"humidity\":%d,\"device_ts_ms\":%lu,\"regando\":%d,"
-           "\"rega_pulsos\":%lu,\"rega_volume_l\":%s,\"volume_total_l\":%s}",
+           "#DATA#{\"humidity\":%d,\"device_ts_ms\":%lu,\"regando\":%s,"
+           "\"rega_pulsos\":%lu,\"rega_volume_l\":%s,\"volume_total_l\":%s,"
+           "\"rega_duracao_s\":%lu}",
            humidityPct,
            device_ts,
-           estaRegando ? 1 : 0,
+           isWatering ? "true" : "false",
            pulsesSessao,
            volSessBuf,
-           volTotBuf);
+           volTotBuf,
+           duracaoSessao_s);
 
   Serial.println(jsonBuf);
 }
 
-void enviarRelatorioHorario() {
-  // captura valores atômicos
-  unsigned long pulsesNow;
-  noInterrupts();
-  pulsesNow = pulseCount;
-  interrupts();
-
-  bool estaRegando = regando;
-  unsigned long duracao_s;
-  unsigned long pulsesSessao;
-  float volumeSessao;
-  if (estaRegando) {
-    // durante rega: relatórios mostram valores correntes
-    duracao_s = (millis() - inicioRegaMs) / 1000UL;
-    pulsesSessao = pulsesNow;
-    volumeSessao = pulsesNow / factorK;
-  } else {
-    // não regando: reporta última sessão (se houver)
-    duracao_s = lastSessionDuration_s;
-    pulsesSessao = pulsesDuringRega;
-    volumeSessao = lastSessionVolume;
-  }
-
-  // envia
-  enviarJSON(estaRegando, umidadeSoloPct, pulsesSessao, volumeSessao, volumeTotal, duracao_s);
-  DPRINTLN("Relatorio horario enviado.");
-}
-
-
-void setup() {
-  Serial.begin(9600);
-  // Wire.begin(); // descomente para iniciar I2C manualmente
-
-  lcd.init();
-  lcd.backlight();
-  lcd.clear();
-
-  pinMode(VALVULA, OUTPUT);
-  // Inicializa relé no estado OFF
-  if (RELAY_ACTIVE_LOW) digitalWrite(VALVULA, HIGH);
-  else digitalWrite(VALVULA, LOW);
-
-  pinMode(FLOW_SENSOR, INPUT);  // ou INPUT_PULLUP se sensor exigir
-  attachInterrupt(digitalPinToInterrupt(FLOW_SENSOR), contadorDePulsos, RISING);
-
-  // enviar relatório imediato ao ligar (opcional)
-  ultimaEnvioRelatorioMs = millis();
-  enviarRelatorioHorario();
-
-  // Mensagem inicial
-  lcd.setCursor(0, 0);
-  lcd.print("Sistema de Rega");
-  lcd.setCursor(0, 1);
-  lcd.print("Inicializando...");
-  delay(800);
-  lcd.clear();
-}
-
-void loop() {
-  unsigned long now = millis();
-
-  // Faz leituras periodicamente (cada intervaloLeituraMs)
-  if (now - ultimaLeituraMs >= intervaloLeituraMs) {
-    ultimaLeituraMs = now;
-    umidadeSoloPct = lerUmidadeMedia(NUM_AMOSTRAS);
-    atualizarDisplay(umidadeSoloPct, regando);
-
-    DPRINT("Umidade: ");
-    DPRINTLN(umidadeSoloPct);
-  }
-
-  // Não está regando e umidade abaixo do limiar? iniciar rega
-  if (!regando && umidadeSoloPct < limiarSeco) {
-    iniciarRega();
-    enviarJSON(true, umidadeSoloPct, 0, 0.0, volumeTotal, 0);
-    atualizarDisplay(umidadeSoloPct, regando);
-  }
-
-  // Se estiver regando, verificar tempo de término
-  if (regando) {
-    if (now - inicioRegaMs >= tempoRegaMs) {
-      pararRega();
-      enviarJSON(false, umidadeSoloPct, pulsesDuringRega, lastSessionVolume, volumeTotal, lastSessionDuration_s);
-      atualizarDisplay(umidadeSoloPct, regando);
-    }
-  }
-
-  // Envia relatório horário
-  if (now - ultimaEnvioRelatorioMs >= intervaloRelatorioMs) {
-    ultimaEnvioRelatorioMs = now;
-    enviarRelatorioHorario();
-  }
-}
-
-// ----------------- Funções auxiliares -----------------
-
 int lerUmidadeMedia(int n) {
   long soma = 0;
   for (int i = 0; i < n; i++) {
-    int leitura = analogRead(UMI_SENSOR);
-    soma += leitura;
-    delay(10);  // curto atraso entre amostras para estabilidade
+    soma += analogRead(SOIL_SENSOR_PIN);
+    delay(8);
   }
   int media = (int)(soma / n);
-
-  // Mapeia e inverte: UMI_SENSOR_MIN => 100% (molhado), UMI_SENSOR_MAX => 0% (seco)
-  long pct = map(media, UMI_SENSOR_MIN, UMI_SENSOR_MAX, 100, 0);
+  long pct = map(media, SENSOR_MIN, SENSOR_MAX, 100, 0);
   pct = constrain(pct, 0, 100);
   return (int)pct;
 }
 
-void iniciarRega() {
-  regando = true;
-  inicioRegaMs = millis();
-
+void startWatering() {
+  watering = true;
+  wateringStart = millis();
   noInterrupts();
-  pulseCount = 0;  // Zera o contador após a leitura
+  pulseCount = 0;
   interrupts();
-
-  // Aciona o relé - respeitando polaridade
-  if (RELAY_ACTIVE_LOW) digitalWrite(VALVULA, LOW);
-  else digitalWrite(VALVULA, HIGH);
-
-  DPRINTLN("=== Iniciando Rega ===");
+  digitalWrite(VALVE_PIN, RELAY_ACTIVE_LOW ? LOW : HIGH);
 }
 
-// Para a rega e atualiza variáveis
-void pararRega() {
-
-  // Leitura de pulsos da sessão
+void stopWatering() {
   noInterrupts();
-  pulsesDuringRega = pulseCount;
+  sessionPulses = pulseCount;
   interrupts();
-
-  // Calcula volume da sessão e acumula
-  lastSessionVolume = pulsesDuringRega / factorK;  // litros
-  volumeTotal += lastSessionVolume;
-  lastSessionDuration_s = (millis() - inicioRegaMs) / 1000UL;
-
-  // Desliga o relé
-  if (RELAY_ACTIVE_LOW) digitalWrite(VALVULA, HIGH);
-  else digitalWrite(VALVULA, LOW);
-
-  regando = false;
-
-  DPRINTLN("=== Parando Rega ===");
-  DPRINT("Pulsos na sessao: ");
-  DPRINTLN(pulsesDuringRega);
-  DPRINT("Volume sessao (L): ");
-  DPRINTLN(lastSessionVolume, 4);
-  DPRINT("Volume total (L): ");
-  DPRINTLN(volumeTotal, 4);
+  lastVolume = sessionPulses / FLOW_FACTOR;
+  totalVolume += lastVolume;
+  lastDuration = (millis() - wateringStart) / 1000UL;
+  digitalWrite(VALVE_PIN, RELAY_ACTIVE_LOW ? HIGH : LOW);
+  watering = false;
 }
 
-// Atualiza o display com estado e umidade
-void atualizarDisplay(int umidadePct, bool estaRegando) {
-  lcd.setCursor(0, 0);
-  char linha0[18];
-  char linha1[18];
-
-  if (estaRegando) {
-    // Exibir estado e volume da sessão (atualiza volume parcial lendo pulseCount)
+void atualizarDisplay(int humidity) {
+  char line0[17] = { 0 }, line1[17] = { 0 };
+  if (watering) {
     unsigned long currentPulses;
-
     noInterrupts();
     currentPulses = pulseCount;
     interrupts();
-
-    float currentVolume = currentPulses / factorK;  // litros (parcial)
-    // converte float para string: dtostrf
+    float currentVolume = currentPulses / FLOW_FACTOR;
     char volBuf[8];
-    dtostrf(currentVolume, 4, 2, volBuf);  // largura 4, 2 casas decimais
-    snprintf(linha0, sizeof(linha0), "Regando V:%sL", volBuf);
-
-    // tempo restante
-    unsigned long elapsed = (millis() - inicioRegaMs) / 1000;
-    unsigned long remaining = (tempoRegaMs / 1000 > elapsed) ? (tempoRegaMs / 1000 - elapsed) : 0;
-    snprintf(linha1, sizeof(linha1), "Umid:%3d%% Rem:%2lus", umidadePct, remaining);
-
+    dtostrf(currentVolume, 4, 2, volBuf);
+    unsigned long elapsed = (millis() - wateringStart) / 1000;
+    unsigned long remaining = (WATERING_TIME_MS / 1000 > elapsed) ? (WATERING_TIME_MS / 1000 - elapsed) : 0;
+    snprintf(line0, sizeof(line0), "Regando V:%sL", volBuf);
+    snprintf(line1, sizeof(line1), "Umid:%3d%% T:%2lus", humidity, remaining);
   } else {
-    // Estado IDLE + total acumulado
-    char volTotalBuf[8];
-    dtostrf(volumeTotal, 4, 2, volTotalBuf);
-    snprintf(linha0, sizeof(linha0), "Estado: IDLE V:%sL", volTotalBuf);
-    snprintf(linha1, sizeof(linha1), "Umid:%3d%%", umidadePct);
+    char totalBuf[8];
+    dtostrf(totalVolume, 4, 2, totalBuf);
+    snprintf(line0, sizeof(line0), "Estado: IDLE V:%sL", totalBuf);
+    snprintf(line1, sizeof(line1), "Umid:%3d%%       ", humidity);
+  }
+  // preencher até 16 chars
+  size_t l0 = strlen(line0);
+  size_t l1 = strlen(line1);
+  if (l0 < 16) memset(line0 + l0, ' ', 16 - l0);
+  if (l1 < 16) memset(line1 + l1, ' ', 16 - l1);
+  line0[16] = line1[16] = '\0';
+  lcd.setCursor(0, 0);
+  lcd.print(line0);
+  lcd.setCursor(0, 1);
+  lcd.print(line1);
+}
+
+void setup() {
+  Serial.begin(9600);
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+  pinMode(VALVE_PIN, OUTPUT);
+  digitalWrite(VALVE_PIN, RELAY_ACTIVE_LOW ? HIGH : LOW);
+  pinMode(FLOW_SENSOR_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(FLOW_SENSOR_PIN), pulseCounter, FALLING);
+
+  lcd.setCursor(0, 0);
+  lcd.print("Sistema de Rega");
+  lcd.setCursor(0, 1);
+  lcd.print("Inicializando...");
+  delay(1000);
+  lcd.clear();
+
+  currentHumidity = lerUmidadeMedia(SAMPLE_COUNT);
+  enviarJSON(false, currentHumidity, 0, 0.0, totalVolume, 0);
+}
+
+void loop() {
+  unsigned long now = millis();
+  if (now - lastReading >= READING_INTERVAL) {
+    lastReading = now;
+    currentHumidity = lerUmidadeMedia(SAMPLE_COUNT);
+    atualizarDisplay(currentHumidity);
   }
 
-  //garante 16 colunas
-  for (int i = strlen(linha0); i < 16; i++) linha0[i] = ' ';
-  linha0[16] = '\0';
-  for (int i = strlen(linha1); i < 16; i++) linha1[i] = ' ';
-  linha1[16] = '\0';
+  // iniciar rega
+  if (!watering && currentHumidity < DRY_THRESHOLD) {
+    startWatering();
+    enviarJSON(true, currentHumidity, 0, 0.0, totalVolume, 0);
+  }
 
-  lcd.print(linha0);
-  lcd.setCursor(0, 1);
-  lcd.print(linha1);
+  // parar rega
+  if (watering && (now - wateringStart >= WATERING_TIME_MS)) {
+    stopWatering();
+    enviarJSON(false, currentHumidity, sessionPulses, lastVolume, totalVolume, lastDuration);
+  }
+
+  // relatório periódico
+  if (now - lastReport >= REPORT_INTERVAL) {
+    lastReport = now;
+    unsigned long currentPulses;
+    noInterrupts();
+    currentPulses = pulseCount;
+    interrupts();
+    bool w = watering;
+    unsigned long duration = w ? (now - wateringStart) / 1000UL : lastDuration;
+    unsigned long pulses = w ? currentPulses : sessionPulses;
+    float volume = pulses / FLOW_FACTOR;
+    enviarJSON(w, currentHumidity, pulses, volume, totalVolume, duration);
+  }
 }

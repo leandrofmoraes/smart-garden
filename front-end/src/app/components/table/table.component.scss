@@ -32,3 +32,28 @@
     }
   }
 }
+
+.table-container {
+  margin: 2rem;
+  overflow-x: auto;
+}
+
+th[sortable] {
+  cursor: pointer;
+}
+
+th.asc::after {
+  content: ' ▲';
+}
+
+th.desc::after {
+  content: ' ▼';
+}
+
+.text-success {
+  font-weight: 600;
+}
+
+.text-danger {
+  font-weight: 600;
+}

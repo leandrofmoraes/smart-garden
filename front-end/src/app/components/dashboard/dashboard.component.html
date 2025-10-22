@@ -3,15 +3,13 @@
   <div class="section">
     <h2 class="section-title">📊 Médias das leituras</h2>
     <div class="cards-row">
-      <!--<div class="card leitura temperatura">
-      <!--  <i class="bi bi-thermometer-half icon"></i>
-      <!--  <h3>{{ temperaturaMedia }} ºC</h3>
-      <!--  <p>Temperatura</p>
-<!--</div>-->
       <div class="card leitura umidade">
         <i class="bi bi-droplet icon"></i>
         <h3>{{ umidadeMedia }}%</h3>
-        <p>Umidade</p>
+        <p>Umidade (média)</p>
+        <small *ngIf="umidadeMinima !== undefined && umidadeMaxima !== undefined">
+          Min: {{ umidadeMinima }}% · Max: {{ umidadeMaxima }}%
+        </small>
       </div>
     </div>
   </div>
@@ -19,17 +17,51 @@
   <!-- Seção de Última Leitura -->
   <div class="section" *ngIf="readings.length">
     <h2 class="section-title">🕒 Última leitura</h2>
+
     <div class="cards-row">
-      <!--div class="card leitura temperatura">
-        <i class="bi bi-thermometer-half icon"></i>
-        <h3>{{ readings[readings.length - 1].temperature }} ºC</h3>
-        <p>Temperatura</p>
-      </div-->
+      <!-- Umidade -->
       <div class="card leitura umidade">
         <i class="bi bi-droplet icon"></i>
-        <h3>{{ readings[readings.length - 1].humidity }}%</h3>
-        <p>Umidade</p>
+        <h3>{{ lastHumidity ?? 'N/A' }}%</h3>
+        <p>Umidade (última)</p>
+        <small *ngIf="lastTimestampIso">Hora: {{ lastTimestampIso | date:'short' }}</small>
+      </div>
+
+      <!-- Estado regando -->
+      <div class="card leitura" [ngClass]="lastRegando ? 'umidade' : ''">
+        <i class="bi" [ngClass]="lastRegando ? 'bi-play-circle' : 'bi-stop-circle' " style="font-size:2.2rem"></i>
+        <h3>{{ lastRegando === null ? 'N/A' : (lastRegando ? 'Sim' : 'Não') }}</h3>
+        <p>Regando agora?</p>
+        <small *ngIf="lastRegaDuracaoS !== null">Duração (s): {{ lastRegaDuracaoS }}</small>
+      </div>
+
+      <!-- Volume da última rega -->
+      <div class="card leitura">
+        <i class="bi bi-water icon"></i>
+        <h3>{{ lastRegaVolumeL !== null ? (lastRegaVolumeL | number:'1.2-3') + ' L' : 'N/A' }}</h3>
+        <p>Volume da última rega</p>
+      </div>
+
+      <!-- Volume total -->
+      <div class="card leitura">
+        <i class="bi bi-bar-chart-line-fill icon"></i>
+        <h3>{{ lastVolumeTotalL !== null ? (lastVolumeTotalL | number:'1.2-3') + ' L' : 'N/A' }}</h3>
+        <p>Volume total acumulado</p>
+      </div>
+
+      <!-- Metadados do ESP/Gateway -->
+      <div class="card leitura">
+        <i class="bi bi-wifi icon"></i>
+        <h3>{{ lastEspIp ?? 'N/D' }}</h3>
+        <p>IP do gateway</p>
+        <small *ngIf="lastEspRssi !== null">RSSI: {{ lastEspRssi }}</small>
       </div>
     </div>
+  </div>
+
+  <!-- Mensagem quando não houver leituras -->
+  <div class="section" *ngIf="!readings.length">
+    <h2 class="section-title">ℹ️ Nenhuma leitura disponível</h2>
+    <p>O sistema ainda não recebeu leituras do gateway. Verifique a conexão do ESP8266 e do Arduino.</p>
   </div>
 </div>

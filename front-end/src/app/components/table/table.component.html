@@ -1,12 +1,8 @@
-<!-- Botão flutuante para abrir a sidebar -->
 <button class="btn btn-primary position-fixed top-0 end-0 m-3 z-3" style="background-color: white; color: blue"
   (click)="sidebarOpen = true">
   <i class="bi bi-funnel"></i> Filtros
 </button>
 
-<!-- =========================
-     SIDEBAR DE FILTROS
-========================== -->
 <div class="sidebar bg-light shadow" [class.open]="sidebarOpen">
   <div class="sidebar-header d-flex justify-content-between align-items-center p-3 border-bottom">
     <h5 class="mb-0">Filtros</h5>
@@ -16,7 +12,6 @@
   </div>
 
   <div class="p-4">
-    <!-- filtros aqui -->
     <div class="mb-3">
       <label for="startDate" class="form-label">De:</label>
       <input type="date" id="startDate" class="form-control" [(ngModel)]="filters.startDate" />
@@ -46,9 +41,6 @@
   </div>
 </div>
 
-<!-- =========================
-     TABELA DE DADOS
-========================== -->
 <div class="table-container">
   <table class="table table-striped table-hover align-middle">
     <thead class="table-light">
@@ -56,21 +48,40 @@
         <th>#</th>
         <th sortable="humidity" (sort)="onSort($event)">Umidade</th>
         <th sortable="timestamp" (sort)="onSort($event)">Data</th>
+        <th>Regando?</th>
+        <th>Pulsos</th>
+        <th>Volume (L)</th>
+        <th>Duração (s)</th>
+        <th>Total (L)</th>
+        <th>ESP IP</th>
+        <th>RSSI</th>
       </tr>
     </thead>
+
     <tbody *ngIf="!loading; else loadingTpl">
       <tr *ngFor="let reading of paginatedReadings; let i = index">
         <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
-        <td>{{ reading.humidity | number : "1.2-2" }}</td>
-        <td>{{ reading.timestamp | date : "dd/MM/yyyy, HH:mm:ss" }}</td>
+        <td>{{ reading.humidity | number: '1.2-2' }}</td>
+        <td>{{ reading.timestamp | date: 'dd/MM/yyyy, HH:mm:ss' }}</td>
+        <td>
+          <span [class.text-success]="reading.regando" [class.text-danger]="!reading.regando">
+            {{ reading.regando ? 'Sim' : 'Não' }}
+          </span>
+        </td>
+        <td>{{ reading.rega_pulsos }}</td>
+        <td>{{ reading.rega_volume_l | number: '1.3-3' }}</td>
+        <td>{{ reading.rega_duracao_s }}</td>
+        <td>{{ reading.volume_total_l | number: '1.3-3' }}</td>
+        <td>{{ reading.esp_ip }}</td>
+        <td>{{ reading.esp_rssi }}</td>
       </tr>
+
       <tr *ngIf="paginatedReadings.length === 0">
-        <td colspan="5" class="text-center py-4">Nenhum dado encontrado.</td>
+        <td colspan="10" class="text-center py-4">Nenhum dado encontrado.</td>
       </tr>
     </tbody>
   </table>
 
-  <!-- Loading -->
   <ng-template #loadingTpl>
     <div class="text-center py-5">
       <div class="spinner-border text-primary" role="status"></div>
@@ -78,8 +89,7 @@
     </div>
   </ng-template>
 
-  <!-- Paginação -->
   <ngb-pagination *ngIf="totalReadings > pageSize" class="mt-3" [collectionSize]="totalReadings" [(page)]="currentPage"
-    [pageSize]="pageSize" [maxSize]="5" [rotate]="true" [boundaryLinks]="true"
-    (pageChange)="onPageChange($event)"></ngb-pagination>
+    [pageSize]="pageSize" [maxSize]="5" [rotate]="true" [boundaryLinks]="true" (pageChange)="onPageChange($event)">
+  </ngb-pagination>
 </div>

@@ -18,7 +18,7 @@ export class ReadingService {
     return this.readingModel.find().exec();
   }
 
-  async findOne(id: number): Promise<Reading | null> {
+  async findOne(id: string): Promise<Reading | null> {
     return this.readingModel.findById(id).exec();
   }
 
@@ -33,7 +33,7 @@ export class ReadingService {
       .exec();
   }
 
-  async delete(id: number): Promise<Reading | null> {
+  async delete(id: string): Promise<Reading | null> {
     return this.readingModel.findByIdAndDelete(id).exec();
   }
 }

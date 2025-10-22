@@ -11,8 +11,8 @@
   <div class="form-group">
     <label for="tipo">Tipo</label>
     <select class="form-control" id="tipo" [(ngModel)]="filtros.tipo" (change)="onFiltroChange()">
-      <!--option value="temperature">Temperatura</option-->
       <option value="humidity">Umidade</option>
+      <!-- adicionar opções no futuro -->
     </select>
   </div>
 
@@ -33,21 +33,22 @@
   </div>
 </aside>
 
-<!-- Dropdown de Tipo também pode ser mantido -->
+<!-- Dropdown de Tipo -->
 <div class="d-inline-block" ngbDropdown #myDrop="ngbDropdown">
   <button type="button" class="btn btn-outline-primary mx-2" id="dropdownManual" ngbDropdownAnchor
     (focus)="myDrop.open()">
     Gráficos
   </button>
   <div ngbDropdownMenu aria-labelledby="dropdownManual">
-    <!--button (click)="setTipo('temperature')" ngbDropdownItem>
-      Temperatura
-    </button-->
     <button (click)="setTipo('humidity')" ngbDropdownItem>Umidade</button>
   </div>
 </div>
 
 <!-- Área do Gráfico -->
 <div class="chart-container p-5">
-  <canvas id="MyChart">{{ chart }}</canvas>
+  <div *ngIf="!humidities.length">
+    <p class="text-muted">Nenhum dado disponível para exibir o gráfico.</p>
+  </div>
+
+  <canvas id="MyChart" *ngIf="humidities.length"></canvas>
 </div>
