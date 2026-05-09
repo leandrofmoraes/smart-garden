@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import Chart from 'chart.js/auto';
 import { ReadingService } from '../../services/reading-service.service';
@@ -14,31 +14,33 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./graphs.component.scss'],
   standalone: true,
 })
-export class GraphsComponent implements OnInit {
+export class GraphsComponent implements OnInit, AfterViewInit {
+  @ViewChild('chartCanvas') chartCanvas!: ElementRef<HTMLCanvasElement>;
+
   public chart: any;
   readings: Reading[] = [];
-
-  // array normalizado para gráficos: { humidity, tsMs, timestampIso }
   humidities: { humidity: number; tsMs: number | null; timestampIso: string | null }[] = [];
 
   sidebarAberto = false;
+  dadosCarregados = false;
 
   filtros = {
-    tipo: 'humidity', // default para o seu caso
+    tipo: 'humidity',
     inicio: '',
     fim: '',
     min: null as number | null,
     max: null as number | null,
   };
 
+  @Input() plantId = '';
+
   constructor(
     private readingService: ReadingService,
     private route: ActivatedRoute,
     private router: Router
-  ) { }
+  ) {}
 
-  async ngOnInit(): Promise<void> {
-    // lê query params e carrega dados
+  ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
       this.filtros.tipo = params['tipo'] || 'humidity';
       this.filtros.inicio = params['inicio'] || '';
@@ -47,52 +49,35 @@ export class GraphsComponent implements OnInit {
       this.filtros.max = params['max'] ? +params['max'] : null;
     });
 
-    await this.getReadingValues();
+    // plantId recebido via @Input do NavComponent
+    const plantId = this.plantId || this.route.parent?.snapshot.paramMap.get('id') || '';
+    this.readingService.getByPlant(plantId).subscribe({
+      next: (response) => {
+        this.readings = response || [];
+        this.normalizeReadings();
+        this.objetosLeituras();
+        this.dadosCarregados = true;
+        // só cria o gráfico se o canvas já existir no DOM
+        if (this.chartCanvas) {
+          this.createChart(this.filtros.tipo);
+        }
+      },
+      error: (err) => console.error('Erro ao obter leituras', err),
+    });
+  }
+
+  ngAfterViewInit(): void {
+    // se os dados já chegaram antes do canvas estar pronto, cria agora
+    if (this.dadosCarregados && this.chartCanvas) {
+      this.createChart(this.filtros.tipo);
+    }
   }
 
   toggleSidebar() {
     this.sidebarAberto = !this.sidebarAberto;
   }
 
-  async getReadingValues() {
-    this.readingService.getAll().subscribe((response) => {
-      this.readings = response || [];
-      this.normalizeReadings();
-      this.objetosLeituras();
-      this.createChart(this.filtros.tipo);
-    }, (err) => {
-      console.error('Erro ao obter leituras', err);
-    });
-  }
-
-  /** Normaliza e adiciona campo __tsMs para ordenação */
-  private normalizeReadings() {
-    this.readings.forEach(r => {
-      const raw = (r as any).timestamp ?? (r as any).device_ts_ms ?? (r as any).createdAt ?? null;
-      const ms = this.timestampToMs(raw);
-      (r as any).__tsMs = Number.isFinite(ms) ? ms : 0;
-    });
-
-    // ordenar ascendendo
-    this.readings.sort((a, b) => ((a as any).__tsMs || 0) - ((b as any).__tsMs || 0));
-  }
-
-  objetosLeituras() {
-    this.humidities = this.readings.map(r => {
-      const source = (r as any).timestamp ?? (r as any).device_ts_ms ?? (r as any).createdAt ?? null;
-      let tsMs = this.timestampToMs(source);
-      if (typeof (r as any).__tsMs === 'number' && !isNaN((r as any).__tsMs)) tsMs = (r as any).__tsMs;
-      const iso = this.msToIsoString(tsMs);
-      return {
-        humidity: typeof r.humidity === 'number' ? r.humidity : (r.humidity ? Number(r.humidity) : 0),
-        tsMs: Number.isFinite(tsMs) ? tsMs : null,
-        timestampIso: iso,
-      };
-    });
-  }
-
   onFiltroChange() {
-    // atualiza URL (query params) — útil para links/compartilhamento
     this.router.navigate([], {
       queryParams: {
         tipo: this.filtros.tipo,
@@ -102,7 +87,6 @@ export class GraphsComponent implements OnInit {
         max: this.filtros.max,
       },
     });
-    // recria gráfico
     this.createChart(this.filtros.tipo);
   }
 
@@ -112,18 +96,11 @@ export class GraphsComponent implements OnInit {
   }
 
   createChart(tipo: string) {
-    // selecionar dados (no momento só umidade)
-    let dados = [];
-    let labelText = '';
-    switch (tipo) {
-      case 'humidity':
-      default:
-        dados = this.humidities;
-        labelText = 'Umidade (%)';
-        break;
-    }
+    if (!this.chartCanvas) return;
 
-    // Aplica filtros
+    let dados = this.humidities;
+    let labelText = 'Umidade (%)';
+
     const inicioMs = this.filtros.inicio ? new Date(this.filtros.inicio).getTime() : null;
     const fimMs = this.filtros.fim ? new Date(this.filtros.fim).getTime() : null;
 
@@ -134,26 +111,25 @@ export class GraphsComponent implements OnInit {
       if (fimMs && ts !== null && ts > fimMs) return false;
       if (this.filtros.min !== null && valor < (this.filtros.min as number)) return false;
       if (this.filtros.max !== null && valor > (this.filtros.max as number)) return false;
-      // se timestamp faltando mas há filtro por período, descarta (não se sabe quando ocorreu)
       if ((inicioMs || fimMs) && ts === null) return false;
       return true;
     });
 
-    // labels: use timestampIso (legível) ou fallback para tsMs
-    const labels = dadosFiltrados.map(d => d.timestampIso ?? (d.tsMs ? new Date(d.tsMs).toISOString() : ''));
+    const labels = dadosFiltrados.map(d =>
+      d.timestampIso
+        ? new Date(d.timestampIso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+        : ''
+    );
     const valores = dadosFiltrados.map(d => d.humidity);
 
     if (this.chart) {
-      try { this.chart.destroy(); } catch (e) { /* ignore */ }
-    }
-
-    if (!labels.length) {
-      // nada para mostrar: limpa chart e sai
+      try { this.chart.destroy(); } catch (e) {}
       this.chart = null;
-      return;
     }
 
-    this.chart = new Chart("MyChart", {
+    if (!labels.length) return;
+
+    this.chart = new Chart(this.chartCanvas.nativeElement, {
       type: 'line',
       data: {
         labels,
@@ -163,65 +139,66 @@ export class GraphsComponent implements OnInit {
           backgroundColor: '#0d6efd33',
           borderColor: '#0d6efd',
           tension: 0.2,
-          pointRadius: 3,
+          pointRadius: 4,
+          fill: true,
         }]
       },
       options: {
+        responsive: true,
         aspectRatio: 2.5,
         scales: {
           x: {
-            ticks: {
-              maxRotation: 45,
-              minRotation: 0,
-              autoSkip: true,
-              maxTicksLimit: 12
-            }
+            ticks: { maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 12 }
           },
           y: { beginAtZero: true }
         },
-        plugins: {
-          legend: { display: true }
-        }
+        plugins: { legend: { display: true } }
       }
     });
   }
 
-  /** Converte timestamps (ISO string / digits / number / Date) para epoch ms */
+  private normalizeReadings() {
+    this.readings.forEach(r => {
+      const raw = (r as any).timestamp ?? (r as any).device_ts_ms ?? (r as any).createdAt ?? null;
+      const ms = this.timestampToMs(raw);
+      (r as any).__tsMs = Number.isFinite(ms) ? ms : 0;
+    });
+    this.readings.sort((a, b) => ((a as any).__tsMs || 0) - ((b as any).__tsMs || 0));
+  }
+
+  private objetosLeituras() {
+    this.humidities = this.readings.map(r => {
+      const source = (r as any).timestamp ?? (r as any).device_ts_ms ?? (r as any).createdAt ?? null;
+      let tsMs = this.timestampToMs(source);
+      if (typeof (r as any).__tsMs === 'number' && !isNaN((r as any).__tsMs)) tsMs = (r as any).__tsMs;
+      return {
+        humidity: typeof r.humidity === 'number' ? r.humidity : (Number(r.humidity) || 0),
+        tsMs: Number.isFinite(tsMs) ? tsMs : null,
+        timestampIso: this.msToIsoString(tsMs),
+      };
+    });
+  }
+
   private timestampToMs(value: unknown): number {
     if (value === null || value === undefined) return NaN;
-
-    if (typeof value === 'number') {
-      // se for muito pequeno, provavelmente segundos -> converte para ms
-      if (value < 1e12) return Math.floor(value * 1000);
-      return Math.floor(value);
-    }
-
+    if (typeof value === 'number') return value < 1e12 ? Math.floor(value * 1000) : Math.floor(value);
     if (typeof value === 'string') {
       const s = value.trim();
       if (!s) return NaN;
       if (/^\d+$/.test(s)) {
         const n = parseInt(s, 10);
-        if (n < 1e12) return Math.floor(n * 1000); // segundos -> ms
-        return n; // já ms
+        return n < 1e12 ? Math.floor(n * 1000) : n;
       }
       const d = new Date(s);
-      const ms = d.getTime();
-      return isNaN(ms) ? NaN : ms;
+      return isNaN(d.getTime()) ? NaN : d.getTime();
     }
-
-    if (value instanceof Date) {
-      const ms = value.getTime();
-      return isNaN(ms) ? NaN : ms;
-    }
-
+    if (value instanceof Date) return isNaN(value.getTime()) ? NaN : value.getTime();
     return NaN;
   }
 
   private msToIsoString(ms: number | null | undefined): string | null {
-    if (ms === null || ms === undefined) return null;
-    if (!isFinite(ms) || isNaN(ms)) return null;
+    if (ms == null || !isFinite(ms) || isNaN(ms)) return null;
     const d = new Date(ms);
-    if (isNaN(d.getTime())) return null;
-    return d.toISOString();
+    return isNaN(d.getTime()) ? null : d.toISOString();
   }
 }

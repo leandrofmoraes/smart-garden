@@ -2,19 +2,19 @@
   <li [ngbNavItem]="1">
     <button ngbNavLink><i class="bi bi-speedometer2"></i> Dashboard</button>
     <ng-template ngbNavContent>
-      <app-dashboard></app-dashboard>
+      <app-dashboard [plantId]="plantId"></app-dashboard>
     </ng-template>
   </li>
   <li [ngbNavItem]="2">
     <button ngbNavLink><i class="bi bi-table"></i> Tabela</button>
     <ng-template ngbNavContent>
-      <app-table></app-table>
+      <app-table [plantId]="plantId"></app-table>
     </ng-template>
   </li>
   <li [ngbNavItem]="3">
     <button ngbNavLink><i class="bi bi-bar-chart-line"></i> Gráficos</button>
     <ng-template ngbNavContent>
-      <app-graphs></app-graphs>
+      <app-graphs [plantId]="plantId"></app-graphs>
     </ng-template>
   </li>
 </ul>

@@ -1,24 +1,23 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Reading } from '../models/reading.model';
-
-
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReadingService {
-  private baseUrl = "http://localhost:3000"
-  private apiRoute = "/reading"
+  private apiUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
-  public getAll() {
-    return this.http.get<Reading[]>(this.baseUrl + this.apiRoute)
+  /** Busca todas as leituras de uma planta específica */
+  public getByPlant(plantId: string) {
+    return this.http.get<Reading[]>(`${this.apiUrl}/plants/${plantId}/readings`);
   }
 
-  public getById(id: number) {
-    return this.http.get<Reading>(`${this.baseUrl}/${this.apiRoute}/${id}`)
+  /** Busca todas as leituras de um dispositivo específico */
+  public getByDevice(deviceId: string) {
+    return this.http.get<Reading[]>(`${this.apiUrl}/devices/${deviceId}/readings`);
   }
-
 }

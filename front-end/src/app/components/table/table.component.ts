@@ -2,6 +2,7 @@ import { Component, Directive, EventEmitter, Input, OnInit, Output, QueryList, V
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgbPaginationModule } from '@ng-bootstrap/ng-bootstrap';
+import { ActivatedRoute } from '@angular/router';
 import { Reading } from '../../models/reading.model';
 import { ReadingService } from '../../services/reading-service.service';
 
@@ -63,7 +64,12 @@ export class TableComponent implements OnInit {
   };
   filteredReadings: Reading[] = [];
 
-  constructor(private readingService: ReadingService) { }
+  @Input() plantId = '';
+
+  constructor(
+    private readingService: ReadingService,
+    private route: ActivatedRoute
+  ) {}
 
   async ngOnInit() {
     this.loadReadings();
@@ -72,7 +78,9 @@ export class TableComponent implements OnInit {
   async loadReadings() {
     this.loading = true;
     try {
-      this.readingService.getAll().subscribe({
+      // plantId recebido via @Input do NavComponent
+      const plantId = this.plantId || this.route.parent?.snapshot.paramMap.get('id') || '';
+      this.readingService.getByPlant(plantId).subscribe({
         next: (response) => {
           this.readings = response || [];
           // inicializa filtros com dados

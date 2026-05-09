@@ -1,79 +1,371 @@
-/* src/app/components/dashboard/dashboard.component.scss */
+$green: #00796b;
+$blue: #339af0;
 
 .dashboard-container {
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   background-color: #f5f7fa;
-  min-height: 100vh;
+  min-height: calc(100vh - 64px);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.section {
-  margin-bottom: 2rem;
+.btn-back {
+  background: none;
+  border: none;
+  color: $green;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: opacity 0.2s;
+  &:hover { opacity: 0.7; }
 }
 
-.section .section-title {
-  font-size: 1.8rem;
-  color: #222;
-  margin-bottom: 1.5rem;
-  font-weight: 700;
-}
-
-.cards-row {
+.feedback-inline {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  justify-content: flex-start;
+  align-items: center;
+  gap: 0.75rem;
+  color: #666;
+  font-size: 0.95rem;
+  padding: 1rem 0;
 }
 
-@media (max-width: 768px) {
-  .cards-row {
-    justify-content: center;
+/* ===== GRID PRINCIPAL ===== */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
   }
 }
 
-.card.leitura {
-  flex: 1 1 200px;
-  background-color: #fff;
+/* ===== COLUNA ESQUERDA ===== */
+.col-plant {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Card de identidade */
+.plant-card {
+  background: #fff;
   border-radius: 16px;
-  padding: 1.5rem 1rem;
-  text-align: center;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  min-width: 180px;
-  position: relative;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
   overflow: hidden;
 }
 
-.card.leitura:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+.plant-image-area {
+  width: 100%;
+  height: 180px;
+  background: #e8f5e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
-.card.leitura .icon {
-  font-size: 2.4rem;
-  margin-bottom: 0.75rem;
-  display: block;
+.plant-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.card.leitura h3 {
-  margin: 0;
-  font-size: 1.6rem;
+.plant-image-placeholder {
+  font-size: 4rem;
+  color: #a5d6a7;
+}
+
+.plant-identity {
+  padding: 1rem 1.25rem;
+
+  .plant-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #111;
+    margin: 0 0 0.2rem;
+  }
+
+  .plant-scientific {
+    font-size: 0.88rem;
+    color: #888;
+  }
+}
+
+/* Card de cuidados */
+.care-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  padding: 1.1rem 1.25rem;
+}
+
+.care-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  i { color: $green; }
+}
+
+.care-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.care-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.care-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+
+  &.temp     { background: #fff3e0; color: #e65100; }
+  &.light    { background: #fffde7; color: #f9a825; }
+  &.humidity { background: #e3f2fd; color: #1565c0; }
+  &.soil     { background: #e8f5e9; color: $green;  }
+  &.ec       { background: #f3e5f5; color: #6a1b9a; }
+}
+
+.care-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.care-label {
+  font-size: 0.75rem;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.care-value {
+  font-size: 0.9rem;
   font-weight: 600;
+  color: #222;
+}
+
+/* ===== COLUNA DIREITA ===== */
+.col-readings {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.readings-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  i { color: $green; }
+}
+
+.no-readings {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  color: #999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+
+  i { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+  p { margin: 0; font-size: 0.9rem; }
+}
+
+/* Destaque de umidade atual */
+.reading-highlight {
+  background: linear-gradient(135deg, #e3f2fd, #dceefa);
+  border-left: 5px solid $blue;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.highlight-icon {
+  font-size: 2rem;
+  color: $blue;
+  line-height: 1;
+
+  // inline com os dados
+  display: none;
+}
+
+.highlight-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.highlight-value {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #0d47a1;
+  line-height: 1;
+}
+
+.highlight-label {
+  font-size: 0.95rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.highlight-time {
+  font-size: 0.8rem;
+  color: #888;
+  width: 100%;
+}
+
+/* Barra de progresso */
+.moisture-bar-wrap {
+  width: 100%;
+}
+
+.moisture-bar-track {
+  position: relative;
+  height: 10px;
+  background: #cde4ff;
+  border-radius: 99px;
+  margin-bottom: 0.3rem;
+}
+
+.moisture-bar-range {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: #74b9ff;
+  border-radius: 99px;
+  opacity: 0.7;
+}
+
+.moisture-bar-cursor {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: left 0.4s ease;
+
+  &.in-range  { background: #00897b; }
+  &.out-range { background: #e53935; }
+}
+
+.moisture-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #888;
+
+  .range-hint {
+    color: #00796b;
+    font-weight: 600;
+  }
+}
+
+/* Mini cards de estatísticas */
+.mini-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.mini-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+  gap: 0.15rem;
+  transition: transform 0.2s;
+
+  &:hover { transform: translateY(-3px); }
+}
+
+.mini-icon {
+  font-size: 1.4rem;
+  color: $green;
+  margin-bottom: 0.25rem;
+}
+
+.mini-value {
+  font-size: 1.2rem;
+  font-weight: 700;
   color: #111;
 }
 
-.card.leitura p {
-  margin: 0;
-  font-size: 1rem;
+.mini-label {
+  font-size: 0.78rem;
   color: #666;
 }
 
-/* Umidade card */
-.card.leitura.umidade {
-  background: linear-gradient(135deg, #e0f0ff, #cde4ff);
-  border-left: 6px solid #339af0;
+.mini-sub {
+  font-size: 0.72rem;
+  color: #aaa;
 }
 
-.card.leitura.umidade .icon {
-  color: #339af0;
+/* ===== Cabeçalho com sync ===== */
+.readings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sync-time {
+  font-size: 0.78rem;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+
+  i { color: $green; }
+}
+
+/* ===== Mini-gráfico de tendência ===== */
+.trend-wrap {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.trend-canvas {
+  display: block;
+  width: 100%;
+  height: 90px;
+  border-radius: 8px;
 }

@@ -4,6 +4,16 @@
     <span class="app-title">Jardim-Inteligente</span>
     <span class="app-subtitle">Sistema de rega automática para jardim</span>
   </div>
+
+  <button
+    class="btn-accessibility"
+    (click)="accessibility.toggleHighContrast()"
+    [title]="accessibility.highContrast ? 'Desativar alto contraste' : 'Ativar alto contraste'"
+    [attr.aria-pressed]="accessibility.highContrast"
+  >
+    <i class="bi bi-eye"></i>
+    <span>{{ accessibility.highContrast ? 'Contraste normal' : 'Alto contraste' }}</span>
+  </button>
 </header>
 
-<app-nav></app-nav>
+<router-outlet></router-outlet>

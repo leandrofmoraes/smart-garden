@@ -1,7 +1,147 @@
-/* Importing Bootstrap SCSS file. */
 @import "bootstrap/scss/bootstrap";
 @import "bootstrap-icons/font/bootstrap-icons.css";
 
-* {
-  font-family: "Roboto", sans-serif;
-}
+* { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+
+/* =======================================================
+   ALTO CONTRASTE
+   Aplicado via body.high-contrast pelo AccessibilityService.
+   Usa seletores planos (sem aninhamento) para garantir
+   compatibilidade com a encapsulação do Angular.
+   ======================================================= */
+
+body.high-contrast { background-color: #000 !important; color: #fff !important; }
+
+/* Header */
+body.high-contrast .navbar-header { background: #000 !important; border-bottom: 2px solid #fff !important; box-shadow: none !important; }
+body.high-contrast .btn-accessibility { background: #000 !important; color: #ffff00 !important; border-color: #ffff00 !important; }
+body.high-contrast .btn-accessibility[aria-pressed="true"] { background: #ffff00 !important; color: #000 !important; }
+
+/* Fundos de página */
+body.high-contrast .plant-list-container { background-color: #000 !important; }
+body.high-contrast .dashboard-container { background-color: #000 !important; }
+
+/* Botão voltar */
+body.high-contrast .btn-back { color: #ffff00 !important; }
+
+/* Textos genéricos */
+body.high-contrast h2 { color: #fff !important; }
+body.high-contrast h3 { color: #fff !important; }
+body.high-contrast h4 { color: #fff !important; }
+body.high-contrast p  { color: #fff !important; }
+body.high-contrast span { color: #fff !important; }
+body.high-contrast small { color: #fff !important; }
+body.high-contrast em { color: #fff !important; }
+body.high-contrast label { color: #fff !important; }
+
+/* Textos secundários */
+body.high-contrast .attr-label       { color: #ccc !important; }
+body.high-contrast .plant-scientific { color: #ccc !important; }
+body.high-contrast .list-item-scientific { color: #ccc !important; }
+body.high-contrast .subtitle         { color: #ccc !important; }
+body.high-contrast .form-hint        { color: #ccc !important; }
+body.high-contrast .text-muted       { color: #ccc !important; }
+body.high-contrast .care-label       { color: #ccc !important; }
+body.high-contrast .mini-label       { color: #ccc !important; }
+body.high-contrast .mini-sub         { color: #ccc !important; }
+body.high-contrast .highlight-label  { color: #ccc !important; }
+body.high-contrast .highlight-time   { color: #ccc !important; }
+body.high-contrast .moisture-bar-labels span { color: #ccc !important; }
+body.high-contrast .moisture-bar-labels .range-hint { color: #ffff00 !important; }
+
+/* Ícones de seção */
+body.high-contrast .section-title i  { color: #ffff00 !important; }
+body.high-contrast .care-title i     { color: #ffff00 !important; }
+body.high-contrast .readings-title i { color: #ffff00 !important; }
+body.high-contrast .list-header h2 i { color: #ffff00 !important; }
+
+/* Cards brancos */
+body.high-contrast .plant-card  { background: #111 !important; border: 2px solid #fff !important; box-shadow: none !important; color: #fff !important; }
+body.high-contrast .care-card   { background: #111 !important; border: 2px solid #fff !important; box-shadow: none !important; color: #fff !important; }
+body.high-contrast .mini-card   { background: #111 !important; border: 2px solid #fff !important; box-shadow: none !important; color: #fff !important; }
+body.high-contrast .modal-panel { background: #111 !important; border: 2px solid #fff !important; box-shadow: none !important; color: #fff !important; }
+body.high-contrast .list-item   { background: #111 !important; border: 2px solid #fff !important; box-shadow: none !important; color: #fff !important; }
+
+body.high-contrast .plant-card:hover { background: #222 !important; border-color: #ffff00 !important; }
+body.high-contrast .list-item:hover  { background: #222 !important; border-color: #ffff00 !important; }
+body.high-contrast .mini-card:hover  { transform: none !important; }
+
+/* Ícones de cuidados */
+body.high-contrast .care-icon { background: #222 !important; color: #ffff00 !important; border: 1px solid #555 !important; }
+
+/* Destaque de umidade */
+body.high-contrast .reading-highlight { background: #111 !important; border-left-color: #ffff00 !important; }
+body.high-contrast .highlight-value   { color: #ffff00 !important; }
+
+/* Barra de umidade */
+body.high-contrast .moisture-bar-track  { background: #333 !important; }
+body.high-contrast .moisture-bar-range  { background: #555 !important; }
+body.high-contrast .moisture-bar-cursor { border-color: #000 !important; }
+body.high-contrast .moisture-bar-cursor.in-range  { background: #00ff00 !important; }
+body.high-contrast .moisture-bar-cursor.out-range { background: #ff4444 !important; }
+
+/* Imagem placeholder */
+body.high-contrast .plant-image-area  { background: #222 !important; }
+body.high-contrast .list-item-image   { background: #222 !important; }
+body.high-contrast .plant-image-placeholder { color: #555 !important; }
+body.high-contrast .list-item-placeholder   { color: #555 !important; }
+
+/* Tags */
+body.high-contrast .tag { background: #333 !important; color: #ffff00 !important; border: 1px solid #555 !important; }
+
+/* Inputs e selects */
+body.high-contrast .form-control { background: #111 !important; border-color: #fff !important; color: #fff !important; }
+body.high-contrast .form-control::placeholder { color: #888 !important; }
+body.high-contrast .form-control:focus { border-color: #ffff00 !important; box-shadow: 0 0 0 3px rgba(255,255,0,0.25) !important; }
+
+/* Botões do modal */
+body.high-contrast .btn-submit { background: #ffff00 !important; color: #000 !important; border: none !important; }
+body.high-contrast .btn-cancel { background: #111 !important; color: #fff !important; border-color: #fff !important; }
+body.high-contrast .btn-link   { color: #ffff00 !important; }
+
+/* Modal */
+body.high-contrast .modal-overlay { background: rgba(0,0,0,0.88) !important; }
+body.high-contrast .modal-header  { border-color: #333 !important; }
+body.high-contrast .modal-footer  { border-color: #333 !important; }
+
+/* Alertas */
+body.high-contrast .alert-success { background: #002200 !important; color: #00ee00 !important; }
+body.high-contrast .alert-error   { background: #2a0000 !important; color: #ff4444 !important; }
+
+/* Gráfico */
+body.high-contrast .chart-container { background: #111 !important; }
+
+/* Abas ng-bootstrap */
+body.high-contrast .nav-tabs { border-color: #444 !important; }
+body.high-contrast .nav-tabs .nav-link { color: #ccc !important; background: #111 !important; border-color: #444 !important; }
+body.high-contrast .nav-tabs .nav-link.active { background: #000 !important; color: #ffff00 !important; border-color: #ffff00 #ffff00 #000 !important; }
+
+/* Toggle de view */
+body.high-contrast .view-toggle { background: #222 !important; }
+body.high-contrast .view-toggle button { color: #ccc !important; }
+body.high-contrast .view-toggle button.active { background: #ffff00 !important; color: #000 !important; }
+body.high-contrast .view-toggle button:not(.active):hover { background: #333 !important; }
+
+/* Card adicionar planta */
+body.high-contrast .add-card       { background: #111 !important; border-color: #ffff00 !important; }
+body.high-contrast .add-list-item  { background: #111 !important; border-color: #ffff00 !important; }
+body.high-contrast .add-icon       { color: #ffff00 !important; }
+body.high-contrast .add-label      { color: #ffff00 !important; }
+body.high-contrast .add-list-label { color: #ffff00 !important; }
+body.high-contrast .add-list-icon  { background: #222 !important; color: #ffff00 !important; }
+
+/* Sem leituras */
+body.high-contrast .no-readings { background: #111 !important; border: 2px solid #444 !important; color: #ccc !important; }
+body.high-contrast .no-readings i { color: #888 !important; }
+
+/* Valores de cuidados */
+body.high-contrast .care-value   { color: #fff !important; }
+body.high-contrast .plant-name   { color: #fff !important; }
+body.high-contrast .mini-value   { color: #fff !important; }
+body.high-contrast .mini-icon    { color: #ffff00 !important; }
+
+/* Novos elementos — alto contraste */
+body.high-contrast .readings-header { color: #fff !important; }
+body.high-contrast .sync-time       { color: #ccc !important; }
+body.high-contrast .sync-time i     { color: #ffff00 !important; }
+body.high-contrast .trend-canvas    { background: #1a1a1a !important; border-radius: 8px; }

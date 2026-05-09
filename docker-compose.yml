@@ -1,0 +1,150 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartgarden-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-smartgarden}
+      POSTGRES_USER: ${DB_USER:-smartgarden}
+      POSTGRES_PASSWORD: ${DB_PASS:-smartgarden}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-smartgarden} -d ${DB_NAME:-smartgarden}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - smartgarden-net
+
+  rabbitmq-broker:
+    image: rabbitmq:3-management
+    container_name: smartgarden-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-guest}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - smartgarden-net
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: smartgarden-mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    command: mosquitto -c /mosquitto-no-auth.conf
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mosquitto_sub",
+          "-t",
+          "$$SYS/#",
+          "-C",
+          "1",
+          "-i",
+          "healthcheck",
+          "-W",
+          "3",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - smartgarden-net
+  integration-service:
+    build:
+      context: ./back-end/integration-service
+      dockerfile: Dockerfile
+    container_name: smartgarden-integration-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq-broker
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASS:-guest}
+      MQTT_HOST: mqtt-broker
+      MQTT_PORT: 1883
+      MQTT_USER: ${MQTT_USER:-}
+      MQTT_PASS: ${MQTT_PASS:-}
+    depends_on:
+      rabbitmq-broker:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_healthy
+    networks:
+      - smartgarden-net
+
+  plant-management-service:
+    build:
+      context: ./back-end/plant-management-service
+      dockerfile: Dockerfile
+    container_name: smartgarden-plant-management-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-smartgarden}
+      DB_USER: ${DB_USER:-smartgarden}
+      DB_PASS: ${DB_PASS:-smartgarden}
+      RABBITMQ_HOST: rabbitmq-broker
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:-guest}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      PLANTBOOK_TOKEN: ${PLANTBOOK_TOKEN:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq-broker:
+        condition: service_healthy
+    networks:
+      - smartgarden-net
+
+  frontend:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+    container_name: smartgarden-frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      - integration-service
+      - plant-management-service
+    networks:
+      - smartgarden-net
+
+networks:
+  smartgarden-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
