@@ -36,7 +36,7 @@ ESP32 ──── MQTT ────► integration-service ──── AMQP �
 
 ![Diagrama do Circuito](.assets/circuit-diagram.jpeg)
 
-![Diagrama do circuito por Genilson](https://github.com)
+![Diagrama do circuito por Genilson](https://github.com/genilsonaraujo)
 ---
 
 ## Hardware — Componentes do Dispositivo IoT
