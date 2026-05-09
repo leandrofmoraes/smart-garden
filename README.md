@@ -34,10 +34,9 @@ ESP32 ──── MQTT ────► integration-service ──── AMQP �
 
 <!-- Insira aqui o diagrama do circuito (formato JPG) -->
 
-![Diagrama do Circuito](docs/circuit-diagram.jpg)
+![Diagrama do Circuito](.assets/circuit-diagram.jpeg)
 
-> **Instruções:** salve o diagrama do circuito como `docs/circuit-diagram.jpg` na raiz do repositório.
-
+![Diagrama do circuito por Genilson](https://github.com)
 ---
 
 ## Hardware — Componentes do Dispositivo IoT
