@@ -260,11 +260,11 @@ IRRIGATION_DEFAULT_MAX_SOIL_MOISTURE=70.0
 Este projeto é desenvolvido como Trabalho de Conclusão de Curso.
 
 ## Membros do grupo
-[Cesar Leandro Guilherme](https://github.com/SpartanWilhelm)
-[Edison Pereira Junior](https://github.com/edisonepjr)
-Guilherme de Souza Silva
-Gustavo Sales de Camargo
-[José Genilson Araújo de Souza](https://github.com/genilsonaraujo)
-Laercio Noguerol Saes
-[Leandro Fernandes de Moraes](https://linktr.ee/leandrofmoraes)
-Luciano Miguel de Oliveira
+- [Cesar Leandro Guilherme](https://github.com/SpartanWilhelm)
+- [Edison Pereira Junior](https://github.com/edisonepjr)
+- Guilherme de Souza Silva
+- Gustavo Sales de Camargo
+- [José Genilson Araújo de Souza](https://github.com/genilsonaraujo)
+- Laercio Noguerol Saes
+- [Leandro Fernandes de Moraes](https://linktr.ee/leandrofmoraes)
+- Luciano Miguel de Oliveira
