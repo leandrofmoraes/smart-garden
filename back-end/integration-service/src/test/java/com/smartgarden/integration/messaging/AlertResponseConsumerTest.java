@@ -7,7 +7,6 @@ import com.smartgarden.integration.dto.irrigation.IrrigationDecisionDto;
 import com.smartgarden.integration.dto.messaging.AmqpPlantResponseDto;
 import com.smartgarden.integration.messaging.consumer.AlertResponseConsumer;
 import com.smartgarden.integration.service.IrrigationDecisionService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -25,175 +24,142 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AlertResponseConsumerTest {
 
-    @Mock AlertCache alertCache;
-    @Mock IrrigationDecisionService irrigationDecisionService;
-    @Spy  ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+  @Mock
+  AlertCache alertCache;
+  @Mock
+  IrrigationDecisionService irrigationDecisionService;
+  @Spy
+  ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
-    @InjectMocks AlertResponseConsumer consumer;
+  @InjectMocks
+  AlertResponseConsumer consumer;
 
-    /* ------------------------------------------------------------------ */
-    /* Decisão de irrigação válida                                          */
-    /* ------------------------------------------------------------------ */
+  @Test
+  void shouldAlwaysAddToCacheAndRouteValidIrrigationDecision() {
+    AmqpPlantResponseDto alert = alert(irrigationPayload("esp-01", true, 20.0, 54.0));
 
-    @Test
-    void shouldAlwaysAddToCacheAndRouteValidIrrigationDecision() {
-        AmqpPlantResponseDto alert = alert(irrigationPayload("esp-01", true, 20.0, 54.0));
+    consumer.consume(alert);
 
-        consumer.consume(alert);
+    verify(alertCache).addAlert(alert);
 
-        // 1. Cache preservado — invariante inviolável
-        verify(alertCache).addAlert(alert);
+    ArgumentCaptor<IrrigationDecisionDto> captor = ArgumentCaptor.forClass(IrrigationDecisionDto.class);
+    verify(irrigationDecisionService).process(captor.capture());
 
-        // 2. Decisão roteada ao service com campos corretos
-        ArgumentCaptor<IrrigationDecisionDto> captor =
-                ArgumentCaptor.forClass(IrrigationDecisionDto.class);
-        verify(irrigationDecisionService).process(captor.capture());
+    IrrigationDecisionDto routed = captor.getValue();
+    assertThat(routed.getDeviceId()).isEqualTo("esp-01");
+    assertThat(routed.getShouldIrrigate()).isTrue();
+    assertThat(routed.getTargetHumidity()).isEqualTo(54.0);
+    assertThat(routed.getCurrentHumidity()).isEqualTo(20.0);
+    assertThat(routed.getReason()).isEqualTo("LOW_MOISTURE");
+  }
 
-        IrrigationDecisionDto routed = captor.getValue();
-        assertThat(routed.getDeviceId()).isEqualTo("esp-01");
-        assertThat(routed.getShouldIrrigate()).isTrue();
-        assertThat(routed.getTargetHumidity()).isEqualTo(54.0);
-        assertThat(routed.getCurrentHumidity()).isEqualTo(20.0);
-        assertThat(routed.getReason()).isEqualTo("LOW_MOISTURE");
-    }
+  @Test
+  void shouldRouteEvenWhenShouldIrrigateIsFalse() {
+    AmqpPlantResponseDto alert = alert(irrigationPayload("esp-01", false, 55.0, 54.0));
 
-    @Test
-    void shouldRouteEvenWhenShouldIrrigateIsFalse() {
-        // shouldIrrigate=false ainda é uma decisão válida — service decide não publicar MQTT
-        AmqpPlantResponseDto alert = alert(irrigationPayload("esp-01", false, 55.0, 54.0));
+    consumer.consume(alert);
 
-        consumer.consume(alert);
+    verify(alertCache).addAlert(alert);
+    verify(irrigationDecisionService).process(any(IrrigationDecisionDto.class));
+  }
 
-        verify(alertCache).addAlert(alert);
-        verify(irrigationDecisionService).process(any(IrrigationDecisionDto.class));
-    }
+  @Test
+  void shouldAddToCacheButNotRouteGenericAlertWithoutShouldIrrigate() {
+    Map<String, Object> payload = Map.of(
+        "message", "Planta precisa de atenção",
+        "plantId", "plant-xyz");
+    AmqpPlantResponseDto alert = alert(payload);
 
-    /* ------------------------------------------------------------------ */
-    /* Alerta genérico — NÃO deve acionar MQTT                             */
-    /* ------------------------------------------------------------------ */
+    consumer.consume(alert);
 
-    @Test
-    void shouldAddToCacheButNotRouteGenericAlertWithoutShouldIrrigate() {
-        // Alerta genérico: sem campo shouldIrrigate
-        Map<String, Object> payload = Map.of(
-                "message", "Planta precisa de atenção",
-                "plantId", "plant-xyz"
-        );
-        AmqpPlantResponseDto alert = alert(payload);
+    verify(alertCache).addAlert(alert);
+    verifyNoInteractions(irrigationDecisionService);
+  }
 
-        consumer.consume(alert);
+  @Test
+  void shouldNotRouteWhenDeviceIdIsMissing() {
+    Map<String, Object> payload = Map.of(
+        "shouldIrrigate", true,
+        "targetHumidity", 54.0
+    // deviceId ausente
+    );
+    AmqpPlantResponseDto alert = alert(payload);
 
-        verify(alertCache).addAlert(alert);
-        verifyNoInteractions(irrigationDecisionService);
-    }
+    consumer.consume(alert);
 
-    @Test
-    void shouldNotRouteWhenDeviceIdIsMissing() {
-        // shouldIrrigate presente mas sem deviceId — não qualifica
-        Map<String, Object> payload = Map.of(
-                "shouldIrrigate", true,
-                "targetHumidity", 54.0
-                // deviceId ausente
-        );
-        AmqpPlantResponseDto alert = alert(payload);
+    verify(alertCache).addAlert(alert);
+    verifyNoInteractions(irrigationDecisionService);
+  }
 
-        consumer.consume(alert);
+  @Test
+  void shouldNotRouteWhenTargetHumidityIsMissing() {
+    Map<String, Object> payload = Map.of(
+        "shouldIrrigate", true,
+        "deviceId", "esp-01");
+    AmqpPlantResponseDto alert = alert(payload);
 
-        verify(alertCache).addAlert(alert);
-        verifyNoInteractions(irrigationDecisionService);
-    }
+    consumer.consume(alert);
 
-    @Test
-    void shouldNotRouteWhenTargetHumidityIsMissing() {
-        // shouldIrrigate e deviceId presentes, mas targetHumidity ausente
-        // Sem targetHumidity o device não sabe quando parar — não publicar é seguro
-        Map<String, Object> payload = Map.of(
-                "shouldIrrigate", true,
-                "deviceId", "esp-01"
-                // targetHumidity ausente
-        );
-        AmqpPlantResponseDto alert = alert(payload);
+    verify(alertCache).addAlert(alert);
+    verifyNoInteractions(irrigationDecisionService);
+  }
 
-        consumer.consume(alert);
+  @Test
+  void shouldAddToCacheWhenPayloadIsNull() {
+    AmqpPlantResponseDto alert = AmqpPlantResponseDto.builder()
+        .correlationId("corr-1")
+        .success(false)
+        .payload(null)
+        .build();
 
-        verify(alertCache).addAlert(alert);
-        verifyNoInteractions(irrigationDecisionService);
-    }
+    consumer.consume(alert);
 
-    /* ------------------------------------------------------------------ */
-    /* Robustez — falha nunca quebra o cache                               */
-    /* ------------------------------------------------------------------ */
+    verify(alertCache).addAlert(alert);
+    verifyNoInteractions(irrigationDecisionService);
+  }
 
-    @Test
-    void shouldAddToCacheWhenPayloadIsNull() {
-        AmqpPlantResponseDto alert = AmqpPlantResponseDto.builder()
-                .correlationId("corr-1")
-                .success(false)
-                .payload(null)
-                .build();
+  @Test
+  void cacheIsAlwaysFedEvenWhenServiceThrows() {
+    doThrow(new RuntimeException("MQTT broker down"))
+        .when(irrigationDecisionService).process(any());
 
-        consumer.consume(alert);
+    AmqpPlantResponseDto alert = alert(irrigationPayload("esp-01", true, 20.0, 54.0));
 
-        verify(alertCache).addAlert(alert);
-        verifyNoInteractions(irrigationDecisionService);
-    }
+    consumer.consume(alert);
 
-    @Test
-    void cacheIsAlwaysFedEvenWhenServiceThrows() {
-        // Service falha (ex: MQTT broker fora do ar) — cache não pode ser afetado
-        doThrow(new RuntimeException("MQTT broker down"))
-                .when(irrigationDecisionService).process(any());
+    verify(alertCache).addAlert(alert);
+  }
 
-        AmqpPlantResponseDto alert = alert(irrigationPayload("esp-01", true, 20.0, 54.0));
+  @Test
+  void shouldAddToCacheEvenWhenDeserializationFails() {
+    AmqpPlantResponseDto alert = AmqpPlantResponseDto.builder()
+        .success(true)
+        .payload("payload-que-nao-é-um-map")
+        .build();
 
-        // Não deve lançar exceção — listener deve ACK a mensagem
-        consumer.consume(alert);
+    consumer.consume(alert);
 
-        // Cache foi alimentado antes da falha
-        verify(alertCache).addAlert(alert);
-    }
+    verify(alertCache).addAlert(alert);
+    verifyNoInteractions(irrigationDecisionService);
+  }
 
-    @Test
-    void shouldAddToCacheEvenWhenDeserializationFails() {
-        // Payload não é um Map — Jackson não consegue converter
-        AmqpPlantResponseDto alert = AmqpPlantResponseDto.builder()
-                .success(true)
-                .payload("payload-que-nao-é-um-map")
-                .build();
+  private AmqpPlantResponseDto alert(Object payload) {
+    return AmqpPlantResponseDto.builder()
+        .correlationId(null)
+        .success(true)
+        .payload(payload)
+        .build();
+  }
 
-        consumer.consume(alert);
-
-        // Cache sempre recebe
-        verify(alertCache).addAlert(alert);
-        verifyNoInteractions(irrigationDecisionService);
-    }
-
-    /* ------------------------------------------------------------------ */
-    /* Helpers                                                              */
-    /* ------------------------------------------------------------------ */
-
-    private AmqpPlantResponseDto alert(Object payload) {
-        return AmqpPlantResponseDto.builder()
-                .correlationId(null)
-                .success(true)
-                .payload(payload)
-                .build();
-    }
-
-    /**
-     * Monta o payload como Map — exatamente como o Jackson deserializa
-     * o JSON vindo do RabbitMQ antes de chegar ao consumer.
-     */
-    private Map<String, Object> irrigationPayload(String deviceId, boolean shouldIrrigate,
-                                                   double current, double target) {
-        return Map.of(
-                "deviceId", deviceId,
-                "shouldIrrigate", shouldIrrigate,
-                "currentHumidity", current,
-                "minHumidity", 30.0,
-                "maxHumidity", 70.0,
-                "targetHumidity", target,
-                "reason", "LOW_MOISTURE"
-        );
-    }
+  private Map<String, Object> irrigationPayload(String deviceId, boolean shouldIrrigate,
+      double current, double target) {
+    return Map.of(
+        "deviceId", deviceId,
+        "shouldIrrigate", shouldIrrigate,
+        "currentHumidity", current,
+        "minHumidity", 30.0,
+        "maxHumidity", 70.0,
+        "targetHumidity", target,
+        "reason", "LOW_MOISTURE");
+  }
 }

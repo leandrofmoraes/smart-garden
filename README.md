@@ -10,13 +10,12 @@ O dispositivo IoT (ESP32) coleta leituras de umidade do solo e as encaminha ao b
 
 ```
 ESP32 ──── MQTT ────► integration-service ──── AMQP ────► plant-management-service
-  ▲                         │                                       │
-  │                         │ REST                                  │ PostgreSQL
-  └──── MQTT ───────────────┘                                       │
-                             ▲                                      │
-                             │ HTTP/REST                            ▼
-                          Frontend                           Open PlantBook API
-                          (Angular)
+  ▲                         │   ▲ │    ▲                   │         │
+  │                         │   │ │    │                   │         │ PostgreSQL
+  └──── MQTT ───────────────┘   │ │    └──── AMQP ─────────┘         │
+                                │ ▼                                  │
+                             HTTP/REST                               ▼
+                        Frontend(Dashboard)                   Open PlantBook API
 ```
 
 | Componente | Tecnologia | Porta |
@@ -36,20 +35,21 @@ ESP32 ──── MQTT ────► integration-service ──── AMQP �
 
 ![Diagrama do Circuito](.assets/circuit-diagram.jpeg)
 
-![Diagrama do circuito por Genilson](https://github.com/genilsonaraujo)
+[Diagrama do circuito por Genilson](https://github.com/genilsonaraujo)
 ---
 
 ## Hardware — Componentes do Dispositivo IoT
 
 | Componente | Modelo | Quantidade |
 |---|---|---|
-| Microcontrolador | ESP32 DEVKIT V1 (36 pinos) | 1 |
-| Sensor de umidade do solo | HW-103 (capacitivo, saída analógica) | 1 |
+| Microcontrolador | ESP32 | 1 |
+| Sensor de umidade do solo | HW-103  | 1 |
 | Sensor de fluxo hídrico | YF-S201 (450 pulsos/litro) | 1 |
 | Display | LCD 16x2 com módulo I2C (endereço 0x27) | 1 |
 | Válvula solenoide | Solenoide 12V (normalmente fechada) | 1 |
-| Módulo relé | Relé 5V NC, ativo em LOW | 1 |
-| Fonte de alimentação | 12V para solenoide + 5V para ESP32 | 1 |
+| Módulo relé | Relé 5V NC | 1 |
+| Fonte de alimentação | 120V para solenoide + 5V para ESP32 | 1 |
+| Conversor de nível lógico bi-direcional | 1 |
 | Protoboard / PCB | — | 1 |
 | Jumpers e cabos | Macho-macho e macho-fêmea | diversos |
 
@@ -192,7 +192,7 @@ docker compose down -v
 
 ## Exemplo de `.env`
 
-Crie o arquivo `.env` na raiz do projeto com o seguinte conteúdo. **Nunca versione este arquivo — ele já está no `.gitignore`.**
+Crie o arquivo `.env` na raiz do projeto com o seguinte conteúdo.
 
 ```env
 # ==============================================================
@@ -249,19 +249,22 @@ IRRIGATION_DEFAULT_MAX_SOIL_MOISTURE=70.0
 2. Conecte o ESP32 à mesma rede WiFi e confirme que o deviceId aparece no LCD (ex: `esp-ddeeff`)
 3. Acesse o frontend em http://localhost:4200
 4. Na tela de plantas, clique em **Nova Planta**
-5. Informe o nome popular (ex: `Samambaia`) — o backend traduz automaticamente para o nome científico e consulta a Open PlantBook
+5. Informe o nome da planta (ex: `Samambaia`) — o backend traduz automaticamente para o nome científico e consulta a Open PlantBook
 6. Selecione o dispositivo IoT na lista (o ESP32 auto-registrado aparecerá pelo deviceId)
 7. Salve — a planta será vinculada ao dispositivo e o ciclo de irrigação automática estará ativo
-
----
-
-## Autor
-
-**Leandro F. Moraes**
-[🔗 Linktree](https://linktr.ee/leandrofmoraes)
 
 ---
 
 ## Licença
 
 Este projeto é desenvolvido como Trabalho de Conclusão de Curso.
+
+## Membros do grupo
+[Cesar Leandro Guilherme](https://github.com/SpartanWilhelm)
+[Edison Pereira Junior](https://github.com/edisonepjr)
+Guilherme de Souza Silva
+Gustavo Sales de Camargo
+[José Genilson Araújo de Souza](https://github.com/genilsonaraujo)
+Laercio Noguerol Saes
+[Leandro Fernandes de Moraes](https://linktr.ee/leandrofmoraes)
+Luciano Miguel de Oliveira

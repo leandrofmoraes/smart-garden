@@ -18,41 +18,43 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ReadingServiceTest {
 
-    @Mock ReadingCache readingCache;
-    @Mock ReadingAmqpPublisher readingAmqpPublisher;
+  @Mock
+  ReadingCache readingCache;
+  @Mock
+  ReadingAmqpPublisher readingAmqpPublisher;
 
-    @InjectMocks ReadingService readingService;
+  @InjectMocks
+  ReadingService readingService;
 
-    @Test
-    void process_shouldCacheAndPublish() {
-        IrrigationReadingDto reading = IrrigationReadingDto.builder()
-                .deviceId("esp-01").humidity(65.0).timestamp(Instant.now()).build();
+  @Test
+  void process_shouldCacheAndPublish() {
+    IrrigationReadingDto reading = IrrigationReadingDto.builder()
+        .deviceId("esp-01").humidity(65.0).timestamp(Instant.now()).build();
 
-        readingService.process(reading);
+    readingService.process(reading);
 
-        verify(readingCache, times(1)).put("esp-01", reading);
-        verify(readingAmqpPublisher, times(1)).publish(reading);
-    }
+    verify(readingCache, times(1)).put("esp-01", reading);
+    verify(readingAmqpPublisher, times(1)).publish(reading);
+  }
 
-    @Test
-    void getReadingsForDevice_shouldDelegateToCache() {
-        IrrigationReadingDto r = IrrigationReadingDto.builder()
-                .deviceId("esp-01").humidity(50.0).build();
-        when(readingCache.getReadingsForDevice("esp-01")).thenReturn(List.of(r));
+  @Test
+  void getReadingsForDevice_shouldDelegateToCache() {
+    IrrigationReadingDto r = IrrigationReadingDto.builder()
+        .deviceId("esp-01").humidity(50.0).build();
+    when(readingCache.getReadingsForDevice("esp-01")).thenReturn(List.of(r));
 
-        List<IrrigationReadingDto> result = readingService.getReadingsForDevice("esp-01");
+    List<IrrigationReadingDto> result = readingService.getReadingsForDevice("esp-01");
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getHumidity()).isEqualTo(50.0);
-    }
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getHumidity()).isEqualTo(50.0);
+  }
 
-    @Test
-    void getLatestPerDevice_shouldDelegateToCache() {
-        when(readingCache.getLatestPerDevice()).thenReturn(List.of(
-                IrrigationReadingDto.builder().deviceId("esp-01").build(),
-                IrrigationReadingDto.builder().deviceId("esp-02").build()
-        ));
+  @Test
+  void getLatestPerDevice_shouldDelegateToCache() {
+    when(readingCache.getLatestPerDevice()).thenReturn(List.of(
+        IrrigationReadingDto.builder().deviceId("esp-01").build(),
+        IrrigationReadingDto.builder().deviceId("esp-02").build()));
 
-        assertThat(readingService.getLatestPerDevice()).hasSize(2);
-    }
+    assertThat(readingService.getLatestPerDevice()).hasSize(2);
+  }
 }

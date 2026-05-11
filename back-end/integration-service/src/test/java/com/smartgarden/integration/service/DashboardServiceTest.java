@@ -61,7 +61,6 @@ class DashboardServiceTest {
 
   @Test
   void getDashboard_whenPlantServiceFails_shouldUseStaleCache() {
-    // Primeira chamada ok — popula cache
     when(plantService.listPlants())
         .thenReturn(List.of(PlantResponseDto.builder().id("1").name("Cached").build()))
         .thenThrow(new IntegrationException("timeout"));
